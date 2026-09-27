@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin conexión.
 // Cambiá VERSION en cada publicación para que los celulares bajen la nueva versión.
-const VERSION = 'carga-v1';
+const VERSION = 'carga-v2';
 const SHELL = [
   './',
   './index.html',
@@ -45,6 +45,17 @@ self.addEventListener('fetch', (e) => {
         })
         .catch(() => cached);
       return cached || network;
+    }),
+  );
+});
+
+// Al tocar un aviso (descanso terminado, cambio de fase) vuelve a la app
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => c.url.startsWith(self.registration.scope));
+      return open ? open.focus() : self.clients.openWindow('./');
     }),
   );
 });

@@ -2,7 +2,7 @@ import { MUSCLES, EXERCISES, MAIN_LIFTS, PROGRAM, DAY_ORDER, LEVELS, STANDARDS, 
 import { S, save, update, dateKey, exportJSON, importJSON, resetAll, requestPersistence, canPersist } from './store.js';
 import * as AI from './ai.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
@@ -52,8 +52,95 @@ async function keepAwake(on) {
   } catch (e) {}
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && (run.on || (S().current && S().current.started))) keepAwake(true);
+  if (document.visibilityState === 'visible') {
+    if (run.on || (S().current && S().current.started)) keepAwake(true);
+    if (screen === 'correr') paintRun();
+  }
 });
+
+/* ---------- Segundo plano: celular bloqueado ----------
+   Android frena las páginas con la pantalla apagada, salvo las que reproducen audio.
+   Mientras corrés o descansás, la app reproduce un audio inaudible: así los tiempos,
+   los pitidos y la voz siguen andando, y el estado se ve en la pantalla de bloqueo
+   como un reproductor de música. Al terminar un descanso o cambiar de fase, además
+   muestra una notificación que vibra. */
+const bg = { audio: null, reasons: new Set(), t: null, asked: false };
+function quietWavUrl() {
+  const sr = 8000, n = sr * 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, (Math.random() * 4 - 2) | 0, true); // ruido de ±2/32768: inaudible
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+function bgHold(reason, on) {
+  const had = bg.reasons.size > 0;
+  on ? bg.reasons.add(reason) : bg.reasons.delete(reason);
+  const need = bg.reasons.size > 0;
+  if (need && !had) {
+    askNotify();
+    try {
+      if (!bg.audio) { bg.audio = new Audio(quietWavUrl()); bg.audio.loop = true; }
+      bg.audio.play().catch(() => {});
+    } catch (e) {}
+    setupMediaActions();
+    clearInterval(bg.t); bg.t = setInterval(mediaTick, 1000); mediaTick();
+  } else if (!need && had) {
+    try { bg.audio && bg.audio.pause(); } catch (e) {}
+    clearInterval(bg.t);
+    if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
+  }
+}
+async function askNotify() {
+  if (bg.asked || !('Notification' in window) || Notification.permission !== 'default') return;
+  bg.asked = true;
+  try { await Notification.requestPermission(); } catch (e) {}
+}
+/* Solo avisa con notificación si la app no está a la vista */
+async function notify(title, body) {
+  try {
+    if (document.visibilityState === 'visible' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const reg = navigator.serviceWorker && (await navigator.serviceWorker.getRegistration());
+    if (reg) reg.showNotification(title, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', vibrate: [250, 100, 250, 100, 250], tag: 'carga-aviso', renotify: true });
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', () => { if (bg.reasons.size && bg.audio && bg.audio.paused) bg.audio.play().catch(() => {}); });
+let mediaReady = false;
+function setupMediaActions() {
+  if (mediaReady || !('mediaSession' in navigator)) return;
+  mediaReady = true;
+  const ms = navigator.mediaSession;
+  const playPause = () => { if (run.on || run.elapsed) toggleRun(); else if (tm.left > 0 && tm.left < tm.total || tm.on) $('#tmStart').click(); mediaTick(); };
+  try { ms.setActionHandler('play', playPause); ms.setActionHandler('pause', playPause); } catch (e) {}
+  try {
+    ms.setActionHandler('nexttrack', () => {
+      if (run.on) $('#runLap').click();
+      else if (restEnd > Date.now()) $('#restSkip').click();
+      mediaTick();
+    });
+  } catch (e) {}
+}
+function mediaTick() {
+  if (!('mediaSession' in navigator) || !bg.reasons.size) return;
+  let title, artist;
+  if (run.on || run.elapsed) {
+    title = mmss(run.elapsed) + ' · ' + fmt(run.dist / 1000, 2) + ' km';
+    artist = run.mode === 'int' && run.phase !== 'done'
+      ? (run.phase === 'fast' ? 'Rápido' : 'Suave') + ' · quedan ' + mss(Math.ceil(run.phaseLeft)) + ' · ronda ' + run.round + '/' + run.cfg.rounds
+      : run.on ? 'Corriendo' : 'En pausa';
+  } else if (restEnd > Date.now()) {
+    title = 'Descanso ' + mss(Math.ceil((restEnd - Date.now()) / 1000));
+    artist = 'Después, siguiente serie';
+  } else if (tm.on) {
+    title = 'Descanso ' + mss(Math.ceil(tm.left));
+    artist = 'Temporizador';
+  } else return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album: 'Carga', artwork: [{ src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }] });
+    navigator.mediaSession.playbackState = run.elapsed && !run.on ? 'paused' : 'playing';
+  } catch (e) {}
+}
 
 /* ---------- navegación ---------- */
 const SCREENS = ['hoy', 'entrenar', 'correr', 'progreso', 'nutricion', 'coach', 'ajustes'];
@@ -421,15 +508,21 @@ let restEnd = 0, restT = null;
 function startRest(sec) {
   restEnd = Date.now() + sec * 1000; $('#rest').hidden = screen !== 'entrenar';
   clearInterval(restT);
+  bgHold('rest', true);
   const tick = () => {
     const left = Math.ceil((restEnd - Date.now()) / 1000);
     $('#restClock').textContent = mss(left);
-    if (left <= 0) { clearInterval(restT); restEnd = 0; $('#rest').hidden = true; beep(988, 0.2, 3); buzz([200, 100, 200]); toast('Descanso terminado. Siguiente serie'); }
+    if (left <= 0) {
+      clearInterval(restT); restEnd = 0; $('#rest').hidden = true;
+      beep(988, 0.2, 3); buzz([200, 100, 200]); toast('Descanso terminado. Siguiente serie');
+      notify('Descanso terminado', 'Siguiente serie');
+      bgHold('rest', false);
+    }
   };
   tick(); restT = setInterval(tick, 500);
 }
 $('#restPlus').onclick = () => { restEnd += 30e3; };
-$('#restSkip').onclick = () => { restEnd = 0; clearInterval(restT); $('#rest').hidden = true; };
+$('#restSkip').onclick = () => { restEnd = 0; clearInterval(restT); $('#rest').hidden = true; bgHold('rest', false); };
 
 /* encuesta al terminar */
 const survey = { fat: 'Media', joint: 'No', perf: 'Igual' };
@@ -511,7 +604,7 @@ function speak(text) {
   try { const u = new SpeechSynthesisUtterance(text); u.lang = 'es-AR'; speechSynthesis.speak(u); } catch (e) {}
 }
 function setMode(m) {
-  if (run.on || run.elapsed) resetRun();
+  if (!setMode.skipReset && (run.on || run.elapsed)) resetRun();
   run.mode = m;
   $('#modeFree').setAttribute('aria-pressed', m === 'free'); $('#modeInt').setAttribute('aria-pressed', m === 'int');
   $('#intCfg').hidden = m !== 'int';
@@ -531,19 +624,79 @@ $$('[data-cfg]').forEach((b) => (b.onclick = () => {
 function tick() {
   const now = Date.now(), dt = (now - run.last) / 1000; run.last = now;
   run.elapsed += dt;
-  if (run.mode === 'int') { run.phaseLeft -= dt; if (run.phaseLeft <= 0) nextPhase(); }
+  if (run.mode === 'int') {
+    run.phaseLeft -= dt;
+    // Si la app estuvo frenada (celular bloqueado), avanza todas las fases vencidas
+    // de una vez y avisa solo la última.
+    let changes = 0;
+    while (run.phaseLeft <= 0 && run.phase !== 'done' && changes < 100) {
+      const carry = run.phaseLeft;
+      nextPhase(true);
+      if (run.phase !== 'done') run.phaseLeft += carry;
+      changes++;
+    }
+    if (changes) announcePhase();
+  }
   const km = Math.floor(run.dist / 1000);
   if (km > run.kmSpoken) {
     run.kmSpoken = km;
     const pace = run.elapsed / (run.dist / 1000);
     speak(`Kilómetro ${km}. Ritmo ${Math.floor(pace / 60)} minutos ${Math.round(pace % 60)} segundos.`);
   }
+  saveRunSnap();
   paintRun();
 }
-function nextPhase() {
-  if (run.phase === 'fast') { run.phase = 'easy'; run.phaseLeft = run.cfg.easy; beep(660, 0.25, 2); buzz([300]); speak('Suave'); }
-  else if (run.round >= run.cfg.rounds) { beep(1320, 0.3, 3); buzz([200, 100, 200, 100, 200]); speak('Intervalos completos'); toggleRun(); run.phase = 'done'; toast('Intervalos completos: ' + fmt(run.dist / 1000, 2) + ' km'); }
-  else { run.round++; run.phase = 'fast'; run.phaseLeft = run.cfg.fast; beep(1046, 0.2, 2); buzz([150, 80, 150]); speak('Rápido'); }
+/* quiet: cambia de fase sin avisar (el aviso lo da announcePhase) */
+function nextPhase(quiet) {
+  if (run.phase === 'fast') { run.phase = 'easy'; run.phaseLeft = run.cfg.easy; }
+  else if (run.round >= run.cfg.rounds) { run.phase = 'done'; run.on = false; clearInterval(run.t); }
+  else { run.round++; run.phase = 'fast'; run.phaseLeft = run.cfg.fast; }
+  if (!quiet) announcePhase();
+}
+function announcePhase() {
+  if (run.phase === 'done') {
+    beep(1320, 0.3, 3); buzz([200, 100, 200, 100, 200]); speak('Intervalos completos');
+    toast('Intervalos completos: ' + fmt(run.dist / 1000, 2) + ' km');
+    notify('Intervalos completos', fmt(run.dist / 1000, 2) + ' km en ' + mmss(run.elapsed));
+  } else if (run.phase === 'easy') {
+    beep(660, 0.25, 2); buzz([300]); speak('Suave');
+    notify('Suave · ' + mss(run.cfg.easy), 'Ronda ' + run.round + ' de ' + run.cfg.rounds);
+  } else {
+    beep(1046, 0.2, 2); buzz([150, 80, 150]); speak('Rápido');
+    notify('Rápido · ' + mss(run.cfg.fast), 'Ronda ' + run.round + ' de ' + run.cfg.rounds);
+  }
+  paintRun();
+}
+
+/* Guarda la carrera en curso: si Android cierra la app en segundo plano, se recupera al volver */
+const SNAP = 'carga:run';
+let snapAt = 0;
+function saveRunSnap(force) {
+  if (!force && Date.now() - snapAt < 3000) return;
+  snapAt = Date.now();
+  try {
+    if (!run.elapsed && !run.on) { localStorage.removeItem(SNAP); return; }
+    const { t, ...rest } = run;
+    localStorage.setItem(SNAP, JSON.stringify({ ...rest, savedAt: Date.now(), lastPos }));
+  } catch (e) {}
+}
+function restoreRunSnap() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SNAP) || 'null');
+    if (!s || Date.now() - s.savedAt > 6 * H) { localStorage.removeItem(SNAP); return; }
+    const wasOn = s.on;
+    Object.assign(run, s, { on: false, t: null });
+    delete run.savedAt; delete run.lastPos;
+    if (wasOn) {
+      // El tiempo siguió corriendo: el primer tick descuenta todo lo que pasó desde
+      // el último guardado (tiempo total y fases de intervalos).
+      run.on = true; run.last = s.last;
+      lastPos = s.lastPos; // el GPS completa el tramo en línea recta
+      run.t = setInterval(tick, 250); gpsStart();
+    }
+    setMode.skipReset = true; setMode(run.mode); setMode.skipReset = false;
+    toast('Recuperé tu carrera en curso');
+  } catch (e) {}
 }
 function paintRun() {
   $('#runClock').textContent = mmss(run.elapsed);
@@ -570,14 +723,17 @@ function toggleRun() {
   if (run.phase === 'done') return;
   run.on = !run.on;
   if (run.on) {
-    gpsStart(); keepAwake(true);
+    gpsStart(); keepAwake(true); bgHold('run', true);
     run.last = Date.now(); run.t = setInterval(tick, 250);
     if (!run.elapsed) { beep(1046, 0.15); if (run.mode === 'int') speak('Rápido'); }
   } else { clearInterval(run.t); lastPos = null; }
-  paintRun();
+  saveRunSnap(true);
+  paintRun(); mediaTick();
 }
 function resetRun() {
   clearInterval(run.t);
+  bgHold('run', false);
+  try { localStorage.removeItem(SNAP); } catch (e) {}
   if (run.elapsed > 30) {
     const rec = { id: uid(), date: new Date().toISOString(), mode: run.mode, dur: Math.round(run.elapsed), dist: Math.round(run.dist), laps: run.laps.map((l) => ({ t: Math.round(l.t), d: Math.round(l.d) })) };
     update((st) => { st.runs.push(rec); });
@@ -614,24 +770,25 @@ function paintTimer() {
   $('#tmState').textContent = tm.on ? 'Descansando' : tm.left <= 0 ? 'Listo' : tm.left < tm.total ? 'En pausa' : 'Elegí un tiempo';
   $('#timerBox').classList.toggle('on', tm.on);
   $('#tmPresets').innerHTML = tmPresets.map((s) => `<button class="chip" aria-pressed="${s === tm.total}" data-tm="${s}">${mss(s)}</button>`).join('');
-  $$('[data-tm]').forEach((b) => (b.onclick = () => { clearInterval(tm.t); Object.assign(tm, { total: +b.dataset.tm, left: +b.dataset.tm, on: false }); paintTimer(); }));
+  $$('[data-tm]').forEach((b) => (b.onclick = () => { clearInterval(tm.t); Object.assign(tm, { total: +b.dataset.tm, left: +b.dataset.tm, on: false }); bgHold('tm', false); paintTimer(); }));
 }
 function tmTick() {
   const prev = Math.ceil(tm.left);
   tm.left = (tm.end - Date.now()) / 1000;
   const cur = Math.ceil(tm.left);
   if (cur !== prev && cur <= 3 && cur > 0) beep(660, 0.1);
-  if (tm.left <= 0) { tm.left = 0; tm.on = false; clearInterval(tm.t); beep(988, 0.25, 3); buzz([200, 100, 200]); toast('Descanso terminado. A seguir'); }
+  if (tm.left <= 0) { tm.left = 0; tm.on = false; clearInterval(tm.t); beep(988, 0.25, 3); buzz([200, 100, 200]); toast('Descanso terminado. A seguir'); notify('Descanso terminado', 'A seguir'); bgHold('tm', false); }
   paintTimer();
 }
 $('#tmStart').onclick = () => {
   if (tm.left <= 0) tm.left = tm.total;
   tm.on = !tm.on;
   if (tm.on) { tm.end = Date.now() + tm.left * 1000; tm.t = setInterval(tmTick, 200); } else clearInterval(tm.t);
+  bgHold('tm', tm.on);
   paintTimer();
 };
-$('#tmPlus').onclick = () => { tm.left += 15; tm.end += 15e3; tm.total = Math.max(tm.total, tm.left); paintTimer(); };
-$('#tmReset').onclick = () => { clearInterval(tm.t); tm.on = false; tm.left = tm.total; paintTimer(); };
+$('#tmPlus').onclick = () => { tm.left += 15; if (tm.on) tm.end += 15e3; tm.total = Math.max(tm.total, tm.left); paintTimer(); };
+$('#tmReset').onclick = () => { clearInterval(tm.t); tm.on = false; tm.left = tm.total; bgHold('tm', false); paintTimer(); };
 function renderCorrer() { paintRun(); paintTimer(); renderRunHistory(); }
 
 /* ---------- PROGRESO ---------- */
@@ -939,7 +1096,19 @@ function renderAjustes() {
   const kb = new Blob([localStorage.getItem('carga:v1') || '']).size;
   $('#storeInfo').textContent = `${sessions().length} entrenamientos, ${S().runs.length} carreras, ${S().meals.length} comidas guardadas (${fmt(kb / 1024, 0)} KB).` + (canPersist() ? '' : ' Atención: no se pudo guardar el último cambio.');
   $('#versionLbl').textContent = 'Carga ' + VERSION;
+  renderNotif();
 }
+function renderNotif() {
+  const p = 'Notification' in window ? Notification.permission : 'unsupported';
+  $('#notifStatus').textContent = {
+    granted: 'Avisos activados: con el celular bloqueado te avisa cuando termina un descanso o cambia un intervalo.',
+    denied: 'Avisos bloqueados. Activalos en los ajustes de Chrome → Configuración del sitio → Notificaciones.',
+    default: 'Activá los avisos para enterarte con el celular bloqueado de que terminó un descanso.',
+    unsupported: 'Este navegador no permite avisos.',
+  }[p];
+  $('#notifBtn').hidden = p !== 'default';
+}
+$('#notifBtn').onclick = async () => { try { await Notification.requestPermission(); } catch (e) {} renderNotif(); };
 $('#keyShow').onclick = () => { const i = $('#apiKey'); i.type = i.type === 'password' ? 'text' : 'password'; $('#keyShow').textContent = i.type === 'password' ? 'Mostrar' : 'Ocultar'; };
 $('#modelSel').onchange = () => { update((st) => { st.settings.model = $('#modelSel').value; }); toast('Modelo: ' + AI.MODELS[S().settings.model].label); };
 $('#keySave').onclick = async () => {
@@ -1019,7 +1188,7 @@ $('#obGo').onclick = () => {
 /* ---------- arranque ---------- */
 const RENDER = { hoy: renderHoy, entrenar: renderEntrenar, correr: renderCorrer, progreso: renderProgreso, nutricion: renderNutricion, coach: renderCoach, ajustes: renderAjustes };
 if (!S().profile) showOnboarding();
-else go(location.hash.slice(1) || 'hoy');
+else { go(location.hash.slice(1) || 'hoy'); restoreRunSnap(); if (run.on) bgHold('run', true); }
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

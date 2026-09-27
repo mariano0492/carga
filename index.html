@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E0609">
+<meta name="description" content="Tu bitácora de fuerza: entrenamiento, recuperación, correr y nutrición.">
+<title>Carga</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,300,0,0&display=block">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <main id="main">
+
+    <!-- HOY -->
+    <section class="screen" data-screen="hoy">
+      <div class="eyebrow"><span id="todayLbl"></span><button class="iconbtn" data-go="ajustes" aria-label="Ajustes"><span class="ms">settings</span></button></div>
+      <figure class="quote">
+        <blockquote id="quoteTxt"></blockquote>
+        <figcaption><span>Frase del día</span><button id="quoteNext">Otra frase</button></figcaption>
+      </figure>
+      <div>
+        <button class="recovhead" id="recovToggle" aria-expanded="false" aria-controls="recovPanel">
+          <span>
+            <span class="big" style="font-size:92px;display:block"><span id="readyN">0</span><span style="color:var(--dim)">/6</span></span>
+            <span class="sub" style="display:block;margin-top:10px">músculos listos para entrenar</span>
+            <span class="dots" id="recovDots" aria-hidden="true"></span>
+            <span class="recov-hint" id="recovHint">Ver figura y detalle</span>
+          </span>
+          <span class="chev"><span class="ms">expand_more</span></span>
+        </button>
+        <div id="recovPanel" hidden>
+          <div class="body" id="bodyMap"></div>
+          <p class="bodyinfo" id="bodyInfo" aria-live="polite"></p>
+          <div class="legend"><span><i style="background:var(--green)"></i>Listo</span><span><i style="background:var(--pink)"></i>Menos de 12 h</span><span><i style="background:var(--wine);box-shadow:inset 0 0 0 1px #B04A7E"></i>Descansando</span></div>
+          <div id="recovList" style="margin-top:14px"></div>
+        </div>
+      </div>
+      <div class="ready" id="readyCard">
+        <div class="ready-top">
+          <div><span class="eyebrow" style="justify-content:flex-start;color:inherit">Puntaje del día</span><span class="big" style="font-size:72px;display:block;margin-top:6px" id="rdScore">75</span></div>
+          <div class="ready-msg"><b id="rdTitle"></b><span id="rdText"></span></div>
+        </div>
+        <div id="wellness"></div>
+        <p class="ready-foot">Sale de tu sueño, tu energía y tus molestias. Cambia el peso que sugiere Entrenar.</p>
+      </div>
+      <div class="song" id="songCard">
+        <div class="song-art" aria-hidden="true"><span class="ms">music_note</span></div>
+        <div class="song-info"><span class="eyebrow" style="justify-content:flex-start">Canción del día</span><b class="song-t"></b><span class="song-a"></span></div>
+        <div class="song-links"><a class="song-sp" target="_blank" rel="noopener">Spotify</a><a class="song-yt" target="_blank" rel="noopener">YouTube</a><button class="song-next">Otra</button></div>
+      </div>
+      <button class="cta" data-go="entrenar" id="todayCta"></button>
+      <div class="stats">
+        <div><b id="weekStat">0/3</b><span>entrenos esta semana</span></div>
+        <div><b id="protStat">0</b><span id="protGoalLbl">/ 165 g prot.</span></div>
+        <div><b id="streakStat">0</b><span>semanas seguidas</span></div>
+      </div>
+      <div>
+        <h2>Peso de hoy</h2>
+        <div class="row" style="border-bottom:1px solid var(--line)">
+          <div class="stepper"><button id="bwMinus" aria-label="Restar 100 gramos"><span class="ms">remove</span></button><span class="big" style="font-size:30px;min-width:92px;text-align:center" id="bwVal">0</span><button id="bwPlus" aria-label="Sumar 100 gramos"><span class="ms">add</span></button></div>
+          <button class="btn solid" id="bwSave" style="padding:9px 16px">Guardar</button>
+        </div>
+        <p class="sub" id="bwLast" style="font-size:12.5px;margin:8px 0 0"></p>
+      </div>
+    </section>
+
+    <!-- ENTRENAR -->
+    <section class="screen" data-screen="entrenar" hidden>
+      <div class="eyebrow"><span id="wkTitle"></span><span id="wkClock">00:00</span></div>
+      <div class="seg" role="group" aria-label="Día de entrenamiento" id="dayPick"></div>
+      <div>
+        <div class="big" style="font-size:64px"><span id="setsDone">0</span><span style="color:var(--dim)">/<span id="setsTotal">0</span></span></div>
+        <p class="sub" style="margin:8px 0 0">series completadas · <span id="volTxt">0</span> kg de volumen</p>
+      </div>
+      <div class="rdbanner" id="rdBanner" hidden></div>
+      <div class="lastfb" id="lastFb" hidden></div>
+      <div class="song compact">
+        <div class="song-art" aria-hidden="true"><span class="ms">music_note</span></div>
+        <div class="song-info"><b class="song-t"></b><span class="song-a"></span></div>
+        <div class="song-links"><a class="song-sp" target="_blank" rel="noopener">Spotify</a><a class="song-yt" target="_blank" rel="noopener">YouTube</a></div>
+      </div>
+      <div id="exList" style="display:flex;flex-direction:column;gap:22px"></div>
+      <button class="cta" id="finishBtn" style="justify-content:center">Terminar entrenamiento</button>
+      <button class="btn" id="discardBtn">Descartar entrenamiento</button>
+      <div style="height:60px" aria-hidden="true"></div>
+    </section>
+
+    <!-- CORRER -->
+    <section class="screen" data-screen="correr" hidden>
+      <div class="eyebrow"><span>Correr</span><span class="pill p-line" id="gpsPill"><span class="ms" style="font-size:14px">gps_off</span><span id="gpsTxt">GPS apagado</span></span></div>
+      <div class="seg" role="group" aria-label="Modo">
+        <button id="modeFree" aria-pressed="true">Libre</button>
+        <button id="modeInt" aria-pressed="false">Intervalos</button>
+      </div>
+      <div class="runcard" id="runCard">
+        <div class="eyebrow" style="color:inherit"><span id="phaseLbl">Listo para empezar</span><span id="phaseLeft"></span></div>
+        <div class="big" style="font-size:88px" id="runClock">00:00</div>
+        <div class="runstats">
+          <div><b id="runDist">0,00</b><span>km</span></div>
+          <div><b id="runPace">–'––"</b><span>ritmo /km</span></div>
+          <div><b id="runLaps">0</b><span id="lapsLbl">vueltas</span></div>
+        </div>
+      </div>
+      <div class="runbtns">
+        <button class="btn solid" id="runStart">Empezar</button>
+        <button class="btn" id="runLap">Vuelta</button>
+        <button class="btn" id="runReset">Terminar</button>
+      </div>
+      <div id="intCfg" hidden>
+        <h2>Configurar intervalos</h2>
+        <div class="row"><span>Rápido</span><div class="stepper"><button data-cfg="fast" data-d="-15" aria-label="Menos tiempo rápido"><span class="ms">remove</span></button><span id="cfgFast" style="min-width:52px;text-align:center;font-variant-numeric:tabular-nums">1:00</span><button data-cfg="fast" data-d="15" aria-label="Más tiempo rápido"><span class="ms">add</span></button></div></div>
+        <div class="row"><span>Suave</span><div class="stepper"><button data-cfg="easy" data-d="-15" aria-label="Menos tiempo suave"><span class="ms">remove</span></button><span id="cfgEasy" style="min-width:52px;text-align:center;font-variant-numeric:tabular-nums">2:00</span><button data-cfg="easy" data-d="15" aria-label="Más tiempo suave"><span class="ms">add</span></button></div></div>
+        <div class="row"><span>Rondas</span><div class="stepper"><button data-cfg="rounds" data-d="-1" aria-label="Menos rondas"><span class="ms">remove</span></button><span id="cfgRounds" style="min-width:52px;text-align:center">6</span><button data-cfg="rounds" data-d="1" aria-label="Más rondas"><span class="ms">add</span></button></div></div>
+        <p class="sub" style="margin-top:10px">Suena un aviso y vibra en cada cambio de fase.</p>
+      </div>
+      <div class="timerbox" id="timerBox">
+        <div class="eyebrow" style="color:inherit"><span>Temporizador de descanso</span><span id="tmState">Elegí un tiempo</span></div>
+        <div class="chips" id="tmPresets"></div>
+        <div class="big" style="font-size:72px" id="tmClock">1:00</div>
+        <div class="bar" style="background:rgba(246,237,241,.14)"><i id="tmBar" style="width:100%;background:var(--wine-ink)"></i></div>
+        <div class="runbtns">
+          <button class="btn solid" id="tmStart">Empezar</button>
+          <button class="btn" id="tmPlus">+15 s</button>
+          <button class="btn" id="tmReset">Reiniciar</button>
+        </div>
+      </div>
+      <div id="lapList"></div>
+      <div>
+        <h2>Últimas carreras</h2>
+        <div id="runHistory"></div>
+      </div>
+      <p class="sub" style="font-size:12px">La pantalla queda encendida mientras corrés para que el GPS no se corte.</p>
+    </section>
+
+    <!-- PROGRESO -->
+    <section class="screen" data-screen="progreso" hidden>
+      <div class="eyebrow"><span id="monthLbl"></span><span>Progreso</span></div>
+      <div>
+        <div class="big" style="font-size:64px" id="monthBig">0</div>
+        <p class="sub" style="margin:8px 0 14px" id="monthSub"></p>
+        <div class="cal" id="cal"></div>
+        <div class="legend" style="margin-top:12px"><span><i style="background:var(--pink)"></i>Fuerza</span><span><i style="background:var(--green)"></i>Correr</span><span><i style="background:rgba(246,237,241,.18)"></i>Descanso</span></div>
+      </div>
+      <div>
+        <h2>Nivel de fuerza</h2>
+        <div class="lvl-head">
+          <div><span class="big" style="font-size:48px;display:block" id="lvlBig">–</span><span class="sub" id="lvlSub"></span></div>
+          <div class="seg" role="group" aria-label="Estándares" style="flex:none">
+            <button id="stdM" aria-pressed="true">Hombres</button>
+            <button id="stdF" aria-pressed="false">Mujeres</button>
+          </div>
+        </div>
+        <div id="lvlList"></div>
+        <p class="sub" style="font-size:12px;margin:10px 0 0">Compara tu 1RM estimado con tu peso corporal. Estándares orientativos para personas que entrenan.</p>
+      </div>
+      <div>
+        <h2>1RM estimado</h2>
+        <div class="chips" id="liftChips" style="margin:8px 0 14px"></div>
+        <div id="liftBox"></div>
+      </div>
+      <div>
+        <h2>Peso corporal</h2>
+        <div id="bwBox"></div>
+      </div>
+      <div>
+        <h2>Series por músculo · esta semana</h2>
+        <div id="volList" style="margin-top:6px"></div>
+      </div>
+      <div>
+        <h2>Récords personales</h2>
+        <div id="prList"></div>
+      </div>
+    </section>
+
+    <!-- NUTRICIÓN -->
+    <section class="screen" data-screen="nutricion" hidden>
+      <div class="eyebrow"><span id="nutDate"></span><span>Meta: fuerza</span></div>
+      <div>
+        <h1 class="h1">Tu nutrición de hoy</h1>
+        <div class="ntiles">
+          <div class="nt" style="--c:var(--pink)"><span class="nt-ic"><span class="ms">local_fire_department</span></span><span class="nt-l">Calorías</span><span class="nt-v"><b id="kcalBig">0</b> kcal</span><span class="nt-g" id="gK"></span><div class="bar"><i id="kcalBar"></i></div></div>
+          <div class="nt" style="--c:var(--green-hi)"><span class="nt-ic"><span class="ms">egg_alt</span></span><span class="nt-l">Proteínas</span><span class="nt-v"><b id="mP">0</b> g</span><span class="nt-g" id="gP"></span><div class="bar"><i id="pBar"></i></div></div>
+          <div class="nt" style="--c:#F2AFD0"><span class="nt-ic"><span class="ms">bakery_dining</span></span><span class="nt-l">Carbos</span><span class="nt-v"><b id="mC">0</b> g</span><span class="nt-g" id="gC"></span><div class="bar"><i id="cBar"></i></div></div>
+          <div class="nt" style="--c:#9BD86E"><span class="nt-ic"><span class="ms">water_drop</span></span><span class="nt-l">Grasas</span><span class="nt-v"><b id="mG">0</b> g</span><span class="nt-g" id="gG"></span><div class="bar"><i id="gBar"></i></div></div>
+        </div>
+        <p class="insight" id="protLeft"></p>
+      </div>
+      <div>
+        <label for="foodIn"><h2>¿Qué comiste?</h2></label>
+        <textarea id="foodIn" rows="2" placeholder="200 g de carne con papas y una ensalada"></textarea>
+        <p id="foodErr" style="color:var(--pink);font-size:13px;margin:6px 0 0" hidden></p>
+        <button class="cta" id="foodBtn" style="margin-top:10px;justify-content:center;gap:8px"><span class="ms">auto_awesome</span><span id="foodBtnTxt">Calcular con IA</span></button>
+        <p class="sub" id="foodMode" style="font-size:12px;margin:8px 0 0"></p>
+      </div>
+      <div id="meals"></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><h1 class="h1" style="margin:0">Recetas para fuerza</h1><span class="pill p-line"><span id="mMeals">0</span>&nbsp;comidas hoy</span></div>
+        <div class="chips" id="recFilters" style="margin:12px 0 16px"></div>
+        <div id="recipes" style="display:flex;flex-direction:column;gap:22px"></div>
+      </div>
+    </section>
+
+    <!-- COACH -->
+    <section class="screen" data-screen="coach" hidden>
+      <div class="eyebrow"><span>Coach IA</span><span id="coachModel"></span></div>
+      <div class="rdbanner mid" id="coachNoKey" hidden><span class="ms">key</span><span>Para usar el coach cargá tu clave de API de Anthropic en <button class="linkbtn" data-go="ajustes">Ajustes</button>.</span></div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="chat" id="chat"></div>
+        <div class="chips" id="quick"></div>
+        <div class="composer">
+          <label for="chatIn" class="vh">Mensaje al coach</label>
+          <textarea id="chatIn" rows="1" placeholder="¿Cuándo hago la descarga?"></textarea>
+          <button class="send" id="chatSend" aria-label="Enviar"><span class="ms">arrow_upward</span></button>
+        </div>
+        <button class="linkbtn" id="chatClear" style="align-self:center">Borrar conversación</button>
+      </div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="screen" data-screen="ajustes" hidden>
+      <div class="eyebrow"><button class="iconbtn" data-go="hoy" aria-label="Volver"><span class="ms">arrow_back</span></button><span>Carga</span></div>
+      <h1 class="h1" style="margin:0">Ajustes</h1>
+
+      <div class="setgroup">
+        <h2>Inteligencia artificial</h2>
+        <label class="field"><span>Clave de API de Anthropic</span>
+          <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
+        </label>
+        <div class="setrow"><button class="btn" id="keyShow">Mostrar</button><button class="btn solid" id="keySave">Guardar y probar</button></div>
+        <p class="sub" id="keyStatus" style="font-size:13px;margin:0"></p>
+        <label class="field"><span>Modelo</span><select id="modelSel"></select></label>
+        <p class="sub" style="font-size:12.5px;margin:0">La clave queda guardada solo en este celular y no se incluye en las copias de seguridad. Se usa para el coach y para calcular comidas; se cobra por uso en tu cuenta de Anthropic. Te conviene poner un límite de gasto mensual en console.anthropic.com.</p>
+      </div>
+
+      <div class="setgroup">
+        <h2>Tus datos</h2>
+        <label class="field"><span>Estándares de fuerza</span><select id="sexSel"><option value="M">Hombres</option><option value="F">Mujeres</option></select></label>
+        <div class="grid2">
+          <label class="field"><span>Calorías / día</span><input id="gKcal" type="number" inputmode="numeric"></label>
+          <label class="field"><span>Proteínas (g)</span><input id="gProt" type="number" inputmode="numeric"></label>
+          <label class="field"><span>Carbos (g)</span><input id="gCarb" type="number" inputmode="numeric"></label>
+          <label class="field"><span>Grasas (g)</span><input id="gFat" type="number" inputmode="numeric"></label>
+        </div>
+        <h2 style="margin-top:8px">1RM de referencia (kg)</h2>
+        <p class="sub" style="font-size:12.5px;margin:0">Se usan para sugerir el peso la primera vez que hacés cada levantamiento. Después manda tu historial.</p>
+        <div class="grid2" id="ormFields"></div>
+        <label class="field"><span>Próximo entrenamiento</span><select id="nextSel"><option value="A">Día A</option><option value="B">Día B</option><option value="C">Día C</option></select></label>
+        <label class="check"><input type="checkbox" id="voiceChk"> Voz en cada kilómetro al correr</label>
+        <button class="btn solid" id="profSave">Guardar cambios</button>
+      </div>
+
+      <div class="setgroup">
+        <h2>Copia de seguridad</h2>
+        <p class="sub" style="font-size:12.5px;margin:0">Tus datos viven en este celular. Bajá una copia de vez en cuando; si cambiás de teléfono o borrás el navegador, la podés volver a cargar.</p>
+        <div class="setrow"><button class="btn" id="expBtn">Descargar copia</button><button class="btn" id="impBtn">Cargar copia</button></div>
+        <input type="file" id="impFile" accept="application/json,.json" hidden>
+        <p class="sub" id="storeInfo" style="font-size:12.5px;margin:0"></p>
+      </div>
+
+      <div class="setgroup">
+        <h2>Borrar todo</h2>
+        <p class="sub" style="font-size:12.5px;margin:0">Elimina entrenamientos, carreras, comidas y pesos de este celular. No se puede deshacer.</p>
+        <button class="btn danger" id="resetBtn">Borrar todos mis datos</button>
+        <div id="resetConfirm" hidden class="setrow"><span class="sub" style="font-size:13px">¿Seguro?</span><button class="btn danger" id="resetYes">Sí, borrar</button><button class="btn" id="resetNo">Cancelar</button></div>
+      </div>
+      <p class="example" id="versionLbl"></p>
+    </section>
+  </main>
+
+  <div class="resttimer" id="rest" hidden>
+    <div><span style="font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Descanso</span><br><b id="restClock">3:00</b></div>
+    <div class="ctl"><button id="restPlus">+30 s</button><button id="restSkip">Saltar</button></div>
+  </div>
+
+  <div class="sheet-bg" id="sheetBg" hidden></div>
+  <div class="sheet" id="survey" role="dialog" aria-modal="true" aria-labelledby="svT" hidden>
+    <div class="eyebrow"><span id="svT">¿Cómo te fue?</span><button id="svX" aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div id="svBody" style="display:flex;flex-direction:column;gap:14px"></div>
+    <button class="cta" id="svSave" style="justify-content:center">Guardar entrenamiento</button>
+  </div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden>
+    <div class="eyebrow"><span id="sheetT">Registrar</span><button id="sheetX" aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div class="sheet-grid">
+      <button data-act="comida"><span class="ms">restaurant</span>Comida</button>
+      <button data-act="peso"><span class="ms">monitor_weight</span>Peso</button>
+      <button data-act="entrenar"><span class="ms">fitness_center</span>Entrenamiento</button>
+      <button data-act="carrera"><span class="ms">directions_run</span>Carrera</button>
+      <button data-act="descanso"><span class="ms">timer</span>Descanso</button>
+      <button data-act="coach"><span class="ms">auto_awesome</span>Preguntar al coach</button>
+    </div>
+  </div>
+
+  <!-- Configuración inicial -->
+  <div class="onboard" id="onboard" hidden>
+    <div class="onboard-in">
+      <div class="big" style="font-size:64px">Carga</div>
+      <p class="sub" style="margin:0">Tu bitácora de fuerza. Configurá lo básico; después podés cambiarlo en Ajustes.</p>
+      <label class="field"><span>Tu peso corporal (kg)</span><input id="obBw" type="number" inputmode="decimal" step="0.1" placeholder="82,4"></label>
+      <label class="field"><span>Estándares de fuerza</span><select id="obSex"><option value="M">Hombres</option><option value="F">Mujeres</option></select></label>
+      <div>
+        <h2>Tu 1RM aproximado (opcional)</h2>
+        <p class="sub" style="font-size:12.5px;margin:0 0 8px">El máximo que levantarías una vez. Si no lo sabés, dejalo vacío: la primera sesión elegís el peso vos.</p>
+        <div class="grid2" id="obOrm"></div>
+      </div>
+      <p id="obErr" style="color:var(--pink);font-size:13px;margin:0" hidden>Ingresá tu peso corporal para empezar.</p>
+      <button class="cta" id="obGo" style="justify-content:center">Empezar</button>
+    </div>
+  </div>
+
+  <nav aria-label="Principal">
+    <button data-tab="hoy" aria-current="page"><span class="ms">home</span>Hoy</button>
+    <button data-tab="entrenar"><span class="ms">fitness_center</span>Entrenar</button>
+    <button data-tab="correr"><span class="ms">directions_run</span>Correr</button>
+    <div class="fabslot"><button class="fab" id="fab" aria-label="Registrar algo" aria-expanded="false" aria-controls="sheet"><span class="ms">add</span></button></div>
+    <button data-tab="nutricion"><span class="ms">nutrition</span>Nutrición</button>
+    <button data-tab="progreso"><span class="ms">monitoring</span>Progreso</button>
+    <button data-tab="coach"><span class="ms">auto_awesome</span>Coach</button>
+  </nav>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

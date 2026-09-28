@@ -9,12 +9,14 @@ export const dateKey = (d = new Date()) => {
 
 function blank() {
   return {
-    v: 1,
+    v: 2,
     profile: null,          // { bw, sex, goals:{kcal,p,c,g}, orm:{sentadilla,…}, created }
     settings: { apiKey: '', model: 'claude-opus-5', voice: true },
-    nextDay: 'A',
-    current: null,          // entrenamiento en curso
-    sessions: [],           // entrenamientos terminados
+    plans: [],              // { id, type, split, name, created, days:[{ id, n, t, slots }] }
+    activePlan: null,       // id del plan en uso
+    rot: { done: [], pin: null }, // días hechos en esta vuelta de la rotación; pin: próximo día elegido a mano
+    current: null,          // entrenamiento en curso, con una copia del día: { planId, day, started, sel, alt, sets }
+    sessions: [],           // entrenamientos terminados: { id, date, planId, planName, dayId, dayName, dur, sets, swaps, survey }
     bodyweight: [],         // { d:'YYYY-MM-DD', kg }
     wellness: {},           // 'YYYY-MM-DD': { s, e, m }
     meals: [],              // { id, d, t, label, text, kcal, p, c, g, src }
@@ -32,10 +34,28 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return blank();
-    return { ...blank(), ...JSON.parse(raw) };
+    const data = JSON.parse(raw);
+    // v1 → v2: los entrenamientos de la versión anterior eran de prueba y se descartan
+    if (data.v === 1) {
+      const s = migrate(data, false);
+      try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+      return s;
+    }
+    return { ...blank(), ...data };
   } catch (e) {
     return blank();
   }
+}
+
+/* Pasa datos de la versión 1 (programa fijo A/B/C) a la 2 (planes). El plan lo crea la app al arrancar.
+   `keepSessions`: las copias de seguridad conservan sus entrenamientos con el nombre del día. */
+function migrate(data, keepSessions) {
+  const out = { ...blank(), ...data, v: 2, plans: [], activePlan: null, rot: { done: [], pin: null }, current: null, lastFeedback: null };
+  delete out.nextDay;
+  out.sessions = keepSessions
+    ? (data.sessions || []).map((s) => ({ ...s, planId: null, planName: 'Fuerza · 3 días', dayId: null, dayName: 'Día ' + s.day, swaps: [] }))
+    : [];
+  return out;
 }
 
 export const S = () => state;
@@ -64,9 +84,10 @@ export function exportJSON() {
 /* Importa una copia de seguridad. Conserva la clave de API del celular. */
 export function importJSON(text) {
   const data = JSON.parse(text);
-  if (!data || data.v !== 1 || !Array.isArray(data.sessions)) throw new Error('El archivo no es una copia de Carga.');
+  if (!data || ![1, 2].includes(data.v) || !Array.isArray(data.sessions)) throw new Error('El archivo no es una copia de Carga.');
   const apiKey = state.settings.apiKey;
-  state = { ...blank(), ...data, settings: { ...blank().settings, ...data.settings, apiKey } };
+  const d = data.v === 1 ? migrate(data, true) : data;
+  state = { ...blank(), ...d, settings: { ...blank().settings, ...d.settings, apiKey } };
   delete state.exportedAt;
   save();
 }

@@ -132,107 +132,136 @@ export const MAIN_LIFTS = [
   { id: 'press_militar', n: 'Press militar' },
 ];
 
-/* ---------- Programa: 3 días de cuerpo completo ----------
-   Cada bloque es un patrón de movimiento. La primera opción es la del plan;
-   las demás trabajan los mismos músculos. `rec` marca el reemplazo más parecido. */
+/* ---------- Plantillas de días ----------
+   Cada día tiene bloques (patrones de movimiento). La primera opción de cada bloque
+   es la del plan; las demás trabajan los mismos músculos. `rec` marca el reemplazo
+   más parecido. Los planes se generan copiando estas plantillas y después se editan. */
 const o = (id, sets, reps, rir, rest, extra = {}) => ({ id, sets, reps, rir, rest, ...extra });
 
-const SLOT_SQUAT = (sets, reps) => ({ p: 'Rodilla dominante', m: 'cuádriceps y glúteos', opts: [
-  o('sentadilla', sets, reps, 2, 180),
-  o('sentadilla_frontal', 4, 5, 2, 180, { rec: true, why: 'Más cuádriceps y torso erguido, menos carga en la espalda' }),
+/* Arma un bloque poniendo primero el ejercicio `first` con las series y reps pedidas */
+function block(p, m, all, first, sets, reps) {
+  const main = all.find((x) => x.id === first) || all[0];
+  const head = { ...main, sets: sets ?? main.sets, reps: reps ?? main.reps };
+  delete head.why;
+  const rest = all.filter((x) => x.id !== head.id);
+  rest[0] = { ...rest[0], rec: true };
+  return { p, m, opts: [head, ...rest] };
+}
+
+const SQUAT = (sets = 5, reps = 5, first = 'sentadilla') => block('Rodilla dominante', 'cuádriceps y glúteos', [
+  o('sentadilla', 5, 5, 2, 180, { why: 'El básico de piernas con barra' }),
+  o('sentadilla_frontal', 4, 5, 2, 180, { why: 'Más cuádriceps y torso erguido, menos carga en la espalda' }),
   o('hack', 4, 8, 2, 120, { why: 'En máquina, fácil de ajustar y sin carga en la espalda' }),
   o('prensa', 4, 10, 2, 120, { why: 'Mucho volumen de piernas sin tensión en la columna' }),
   o('bulgara', 3, 8, 2, 90, { why: 'Una pierna por vez, corrige diferencias entre lados' }),
-] });
-const SLOT_BENCH = (sets, reps) => ({ p: 'Empuje horizontal', m: 'pecho, hombros y tríceps', opts: [
-  o('banca', sets, reps, 2, 180),
-  o('banca_mancuernas', 4, 8, 2, 120, { rec: true, why: 'Mismo empuje, cada brazo trabaja por separado' }),
+], first, sets, reps);
+const BENCH = (sets = 5, reps = 5, first = 'banca') => block('Empuje horizontal', 'pecho, hombros y tríceps', [
+  o('banca', 5, 5, 2, 180, { why: 'El básico de empuje con barra' }),
+  o('banca_mancuernas', 4, 8, 2, 120, { why: 'Mismo empuje, cada brazo trabaja por separado' }),
   o('banca_inclinada', 4, 6, 2, 150, { why: 'Más pecho superior y hombro anterior' }),
   o('fondos', 4, 8, 2, 120, { why: 'Con el peso del cuerpo, mucho pecho y tríceps' }),
   o('flexiones', 4, 12, 2, 90, { why: 'Sin banco ni barra: sirve si está todo ocupado' }),
-] });
-const SLOT_ROW = (first) => {
-  const all = [
-    o('remo_barra', 4, 8, 2, 120),
-    o('remo_apoyado', 4, 10, 2, 90, { why: 'Mismo tirón sin carga en la espalda baja' }),
-    o('remo_mancuerna', 4, 10, 2, 90, { why: 'Un brazo por vez, recorrido más largo' }),
-    o('remo_polea', 4, 12, 2, 90, { why: 'Tensión constante, fácil de ajustar' }),
-    o('remo_t', 4, 8, 2, 120, { why: 'Permite cargar pesado con el torso apoyado' }),
-  ];
-  const opts = [all.find((x) => x.id === first), ...all.filter((x) => x.id !== first)];
-  opts[1] = { ...opts[1], rec: true };
-  return { p: 'Remo', m: 'espalda media y dorsales', opts };
+], first, sets, reps);
+const ROW = (first = 'remo_barra', sets, reps) => block('Remo', 'espalda media y dorsales', [
+  o('remo_barra', 4, 8, 2, 120, { why: 'Remo pesado con barra' }),
+  o('remo_apoyado', 4, 10, 2, 90, { why: 'Mismo tirón sin carga en la espalda baja' }),
+  o('remo_mancuerna', 4, 10, 2, 90, { why: 'Un brazo por vez, recorrido más largo' }),
+  o('remo_polea', 4, 12, 2, 90, { why: 'Tensión constante, fácil de ajustar' }),
+  o('remo_t', 4, 8, 2, 120, { why: 'Permite cargar pesado con el torso apoyado' }),
+], first, sets, reps);
+const HINGE = (sets = 5, reps = 3, first = 'peso_muerto') => block('Bisagra de cadera', 'isquios, glúteos y espalda baja', [
+  o('peso_muerto', 5, 3, 2, 180, { why: 'El básico de bisagra con barra' }),
+  o('pm_hex', 5, 3, 2, 180, { why: 'Mismo movimiento con menos carga en la espalda baja' }),
+  o('pm_sumo', 5, 3, 2, 180, { why: 'Piernas abiertas: más glúteos y aductores' }),
+  o('pm_rumano', 4, 6, 2, 150, { why: 'Más isquios, menos peso total' }),
+  o('buenos_dias', 3, 8, 3, 120, { why: 'Accesorio de bisagra, carga liviana' }),
+], first, sets, reps);
+const OHP = (sets = 4, reps = 5, first = 'press_militar') => block('Empuje vertical', 'hombros y tríceps', [
+  o('press_militar', 4, 5, 2, 150, { why: 'El básico de hombros con barra' }),
+  o('press_mancuernas', 4, 8, 2, 120, { why: 'Mismo empuje, cada brazo trabaja por separado' }),
+  o('push_press', 4, 4, 2, 150, { why: 'Con impulso de piernas: más peso y potencia' }),
+  o('landmine', 3, 8, 2, 90, { why: 'Más amable para hombros con molestias' }),
+  o('press_arnold', 3, 10, 2, 90, { why: 'Recorrido largo, más deltoide anterior' }),
+], first, sets, reps);
+const PULLUP = (sets = 4, reps = 6, first = 'dominadas') => block('Tirón vertical', 'dorsales y bíceps', [
+  o('dominadas', 4, 6, 1, 120, { why: 'Con lastre, el básico de tirón vertical' }),
+  o('chinups', 4, 6, 1, 120, { why: 'Palmas hacia vos: más bíceps, igual de pesadas' }),
+  o('jalon', 4, 8, 2, 90, { why: 'Mismo movimiento en máquina, fácil de ajustar el peso' }),
+  o('jalon_neutro', 4, 10, 2, 90, { why: 'Palmas enfrentadas, cómodo para codos y hombros' }),
+], first, sets, reps);
+const GLUTE = (sets, reps, first = 'hip_thrust') => block('Glúteos', 'glúteo mayor', [
+  o('hip_thrust', 3, 8, 2, 90, { why: 'El más directo para glúteos' }),
+  o('hip_maquina', 3, 10, 2, 90, { why: 'Mismo ejercicio, más rápido de armar' }),
+  o('puente', 3, 10, 2, 90, { why: 'Desde el piso, recorrido más corto' }),
+  o('patada_polea', 3, 12, 2, 60, { why: 'Una pierna por vez, buena para corregir diferencias' }),
+], first, sets, reps);
+const REAR = (sets, reps, first = 'face_pull') => block('Hombro posterior', 'deltoide posterior y manguito rotador', [
+  o('face_pull', 3, 15, 2, 60, { why: 'Protege los hombros de todo el trabajo de press' }),
+  o('reverse_fly', 3, 15, 2, 60, { why: 'Mismo músculo con recorrido guiado' }),
+  o('pajaros', 3, 15, 2, 60, { why: 'Sin máquina, solo mancuernas livianas' }),
+  o('pull_apart', 3, 20, 2, 45, { why: 'Con banda elástica, sirve también de entrada en calor' }),
+], first, sets, reps);
+const BICEPS = (sets, reps, first = 'curl_barra') => block('Bíceps', 'bíceps y antebrazo', [
+  o('curl_barra', 3, 10, 2, 60, { why: 'Curl clásico con barra' }),
+  o('curl_mancuernas', 3, 12, 2, 60, { why: 'Cada brazo por separado, con giro de muñeca' }),
+  o('curl_martillo', 3, 12, 2, 60, { why: 'Más antebrazo y braquial' }),
+  o('curl_polea', 3, 15, 2, 45, { why: 'Tensión constante en todo el recorrido' }),
+], first, sets, reps);
+const TRICEPS = (sets, reps, first = 'fondos') => block('Tríceps', 'tríceps', [
+  o('fondos', 3, 8, 2, 120, { why: 'Con el peso del cuerpo, permite lastre' }),
+  o('press_frances', 3, 10, 2, 90, { why: 'Aísla el tríceps, carga moderada' }),
+  o('ext_polea', 3, 12, 2, 60, { why: 'Suave para los codos, tensión constante' }),
+  o('press_cerrado', 3, 8, 2, 120, { why: 'Permite cargar pesado, también trabaja pecho' }),
+], first, sets, reps);
+const HAMS = (sets, reps, first = 'pm_rumano') => block('Isquios', 'isquiotibiales', [
+  o('pm_rumano', 3, 8, 2, 120, { why: 'Bisagra con barra, mucho estiramiento' }),
+  o('curl_femoral', 3, 12, 2, 60, { why: 'Aísla isquios sin cargar la espalda' }),
+  o('buenos_dias', 3, 8, 3, 120, { why: 'Bisagra liviana con barra' }),
+], first, sets, reps);
+const CALVES = (sets, reps, first = 'pant_pie') => block('Pantorrillas', 'gemelos y sóleo', [
+  o('pant_pie', 4, 12, 2, 60, { why: 'De pie: más gemelos' }),
+  o('pant_sentado', 4, 15, 2, 60, { why: 'Rodilla flexionada: más sóleo' }),
+  o('pant_prensa', 4, 15, 2, 60, { why: 'En la prensa, sin necesidad de máquina específica' }),
+], first, sets, reps);
+
+export const DAY_TPL = {
+  full_a: () => ({ n: 'Completo A', t: 'Sentadilla y empuje', slots: [SQUAT(5, 5), BENCH(5, 5), ROW('remo_barra'), BICEPS(), CALVES()] }),
+  full_b: () => ({ n: 'Completo B', t: 'Tirón y hombros', slots: [HINGE(5, 3), OHP(4, 5), PULLUP(4, 6), GLUTE(), REAR()] }),
+  full_c: () => ({ n: 'Completo C', t: 'Fuerza pesada', slots: [SQUAT(5, 3), BENCH(5, 3), ROW('remo_mancuerna'), TRICEPS(), HAMS()] }),
+  upper_a: () => ({ n: 'Torso A', t: 'Press banca pesado', slots: [BENCH(5, 5), ROW('remo_barra', 4, 6), OHP(3, 8), PULLUP(3, 8), BICEPS()] }),
+  upper_b: () => ({ n: 'Torso B', t: 'Press militar pesado', slots: [OHP(5, 5), BENCH(4, 6, 'banca_inclinada'), PULLUP(4, 6), ROW('remo_mancuerna'), TRICEPS(3, 10, 'press_frances'), REAR()] }),
+  lower_a: () => ({ n: 'Pierna A', t: 'Sentadilla pesada', slots: [SQUAT(5, 5), HAMS(3, 8), GLUTE(), CALVES()] }),
+  lower_b: () => ({ n: 'Pierna B', t: 'Peso muerto pesado', slots: [HINGE(5, 3), SQUAT(3, 6, 'sentadilla_frontal'), GLUTE(3, 8), HAMS(3, 12, 'curl_femoral'), CALVES(4, 15, 'pant_sentado')] }),
+  push: () => ({ n: 'Empuje', t: 'Pecho, hombros y tríceps', slots: [BENCH(5, 5), OHP(4, 6), BENCH(3, 8, 'banca_inclinada'), TRICEPS(3, 12, 'ext_polea'), REAR(3, 15, 'reverse_fly')] }),
+  pull: () => ({ n: 'Tirón', t: 'Espalda y bíceps', slots: [PULLUP(5, 5), ROW('remo_barra', 4, 6), ROW('remo_polea', 3, 12), REAR(), BICEPS(3, 12, 'curl_martillo')] }),
+  legs: () => ({ n: 'Pierna', t: 'Sentadilla y bisagra', slots: [SQUAT(5, 5), HINGE(3, 6, 'pm_rumano'), SQUAT(3, 10, 'prensa'), GLUTE(), CALVES()] }),
 };
 
-export const PROGRAM = {
-  A: { n: 'Día A', t: 'Sentadilla y empuje', slots: [
-    SLOT_SQUAT(5, 5),
-    SLOT_BENCH(5, 5),
-    SLOT_ROW('remo_barra'),
-    { p: 'Bíceps', m: 'bíceps y antebrazo', opts: [
-      o('curl_barra', 3, 10, 2, 60),
-      o('curl_mancuernas', 3, 12, 2, 60, { rec: true, why: 'Cada brazo por separado, con giro de muñeca' }),
-      o('curl_martillo', 3, 12, 2, 60, { why: 'Más antebrazo y braquial' }),
-      o('curl_polea', 3, 15, 2, 45, { why: 'Tensión constante en todo el recorrido' }),
-    ] },
-    { p: 'Pantorrillas', m: 'gemelos y sóleo', opts: [
-      o('pant_pie', 4, 12, 2, 60),
-      o('pant_sentado', 4, 15, 2, 60, { rec: true, why: 'Rodilla flexionada: más sóleo' }),
-      o('pant_prensa', 4, 15, 2, 60, { why: 'En la prensa, sin necesidad de máquina específica' }),
-    ] },
-  ] },
-  B: { n: 'Día B', t: 'Tirón y hombros', slots: [
-    { p: 'Bisagra de cadera', m: 'isquios, glúteos y espalda baja', opts: [
-      o('peso_muerto', 5, 3, 2, 180),
-      o('pm_hex', 5, 3, 2, 180, { rec: true, why: 'Mismo movimiento con menos carga en la espalda baja' }),
-      o('pm_sumo', 5, 3, 2, 180, { why: 'Piernas abiertas: más glúteos y aductores' }),
-      o('pm_rumano', 4, 6, 2, 150, { why: 'Más isquios, menos peso total' }),
-      o('buenos_dias', 3, 8, 3, 120, { why: 'Accesorio de bisagra, carga liviana' }),
-    ] },
-    { p: 'Empuje vertical', m: 'hombros y tríceps', opts: [
-      o('press_militar', 4, 5, 2, 150),
-      o('press_mancuernas', 4, 8, 2, 120, { rec: true, why: 'Mismo empuje, cada brazo trabaja por separado' }),
-      o('push_press', 4, 4, 2, 150, { why: 'Con impulso de piernas: más peso y potencia' }),
-      o('landmine', 3, 8, 2, 90, { why: 'Más amable para hombros con molestias' }),
-      o('press_arnold', 3, 10, 2, 90, { why: 'Recorrido largo, más deltoide anterior' }),
-    ] },
-    { p: 'Tirón vertical', m: 'dorsales y bíceps', opts: [
-      o('dominadas', 4, 6, 1, 120),
-      o('chinups', 4, 6, 1, 120, { rec: true, why: 'Palmas hacia vos: más bíceps, igual de pesadas' }),
-      o('jalon', 4, 8, 2, 90, { why: 'Mismo movimiento en máquina, fácil de ajustar el peso' }),
-      o('jalon_neutro', 4, 10, 2, 90, { why: 'Palmas enfrentadas, cómodo para codos y hombros' }),
-    ] },
-    { p: 'Glúteos', m: 'glúteo mayor', opts: [
-      o('hip_thrust', 3, 8, 2, 90),
-      o('hip_maquina', 3, 10, 2, 90, { rec: true, why: 'Mismo ejercicio, más rápido de armar' }),
-      o('puente', 3, 10, 2, 90, { why: 'Desde el piso, recorrido más corto' }),
-      o('patada_polea', 3, 12, 2, 60, { why: 'Una pierna por vez, buena para corregir diferencias' }),
-    ] },
-    { p: 'Hombro posterior', m: 'deltoide posterior y manguito rotador', opts: [
-      o('face_pull', 3, 15, 2, 60),
-      o('reverse_fly', 3, 15, 2, 60, { rec: true, why: 'Mismo músculo con recorrido guiado' }),
-      o('pajaros', 3, 15, 2, 60, { why: 'Sin máquina, solo mancuernas livianas' }),
-      o('pull_apart', 3, 20, 2, 45, { why: 'Con banda elástica, sirve también de entrada en calor' }),
-    ] },
-  ] },
-  C: { n: 'Día C', t: 'Fuerza pesada', slots: [
-    SLOT_SQUAT(5, 3),
-    SLOT_BENCH(5, 3),
-    SLOT_ROW('remo_mancuerna'),
-    { p: 'Tríceps', m: 'tríceps', opts: [
-      o('fondos', 3, 8, 2, 120),
-      o('press_frances', 3, 10, 2, 90, { rec: true, why: 'Aísla el tríceps, carga moderada' }),
-      o('ext_polea', 3, 12, 2, 60, { why: 'Suave para los codos, tensión constante' }),
-      o('press_cerrado', 3, 8, 2, 120, { why: 'Permite cargar pesado, también trabaja pecho' }),
-    ] },
-    { p: 'Isquios', m: 'isquiotibiales', opts: [
-      o('pm_rumano', 3, 8, 2, 120),
-      o('curl_femoral', 3, 12, 2, 60, { rec: true, why: 'Aísla isquios sin cargar la espalda' }),
-      o('buenos_dias', 3, 8, 3, 120, { why: 'Bisagra liviana con barra' }),
-    ] },
-  ] },
+/* ---------- Tipos de plan y divisiones sugeridas según los días ---------- */
+export const PLAN_TYPES = {
+  fuerza: { n: 'Fuerza', d: 'Básicos pesados de 3 a 6 repeticiones y progresión de peso. Es el programa que ya venías haciendo.', ic: 'weight' },
+  hipertrofia: { n: 'Hipertrofia', d: 'Más volumen y repeticiones para ganar músculo.', ic: 'fitness_center', soon: true },
+  manual: { n: 'Manual', d: 'Empezás con días vacíos y elegís vos cada ejercicio, las series y las repeticiones.', ic: 'edit_note' },
 };
-export const DAY_ORDER = ['A', 'B', 'C'];
+export const MIN_DAYS = 2, MAX_DAYS = 5;
+export const SPLITS = {
+  2: [
+    { id: 'full2', n: 'Cuerpo completo', d: 'Todo el cuerpo en cada sesión: cada músculo se entrena dos veces por semana.', days: ['full_a', 'full_b'] },
+    { id: 'ul2', n: 'Torso / Pierna', d: 'Un día de tren superior y otro de piernas. Cada músculo una vez por semana.', days: ['upper_a', 'lower_b'] },
+  ],
+  3: [
+    { id: 'full3', n: 'Cuerpo completo A/B/C', d: 'El programa original: tres sesiones de cuerpo completo que se alternan.', days: ['full_a', 'full_b', 'full_c'] },
+    { id: 'ppl3', n: 'Empuje / Tirón / Pierna', d: 'Un grupo distinto cada día: nunca repetís músculo en días seguidos.', days: ['push', 'pull', 'legs'] },
+  ],
+  4: [
+    { id: 'ul4', n: 'Torso / Pierna ×2', d: 'Alterna tren superior e inferior: cada músculo dos veces por semana, con descanso en el medio.', days: ['upper_a', 'lower_a', 'upper_b', 'lower_b'] },
+    { id: 'ppl4', n: 'Empuje / Tirón / Pierna + Torso', d: 'Los tres grupos separados y un día extra de tren superior.', days: ['push', 'pull', 'legs', 'upper_b'] },
+  ],
+  5: [
+    { id: 'ulppl5', n: 'Torso / Pierna + Empuje / Tirón / Pierna', d: 'Dos días pesados de torso y pierna, y tres de grupos separados.', days: ['upper_a', 'lower_b', 'push', 'pull', 'legs'] },
+    { id: 'pplul5', n: 'Empuje / Tirón / Pierna + Torso / Pierna', d: 'Primero los grupos separados, al final torso y pierna pesados.', days: ['push', 'pull', 'legs', 'upper_b', 'lower_a'] },
+  ],
+};
 
 /* ---------- Niveles de fuerza: mínimo de 1RM / peso corporal ---------- */
 export const LEVELS = ['Principiante', 'Novato', 'Intermedio', 'Avanzado', 'Élite'];
@@ -298,7 +327,7 @@ export const QUOTES = [
   'No compitas con nadie más que con tu planilla de la semana pasada.',
   'La técnica primero. El peso viene después, siempre.',
   'Lo difícil de la sentadilla es bajar. Lo hermoso es subir.',
-  'Tres días por semana, cincuenta semanas por año. Hacé la cuenta.',
+  'Pocos días por semana, cincuenta semanas por año. Hacé la cuenta.',
   'La motivación arranca el entrenamiento. El hábito lo termina.',
   'El RIR no miente. Escuchalo.',
   'Fuerte no es el que nunca falla una serie, es el que vuelve el martes.',

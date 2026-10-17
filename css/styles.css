@@ -407,3 +407,4 @@ nav button{font-size:9.5px;min-width:0}
 .catlist .opt[aria-selected="true"] .opt-chk{color:var(--pink)}
 .catlist .opt-chk{color:var(--muted)}
 .rdbanner>.ms{flex:none}
+.tag-readapt{background:var(--pink);color:var(--pink-ink)}

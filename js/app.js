@@ -3,7 +3,7 @@ import * as PL from './plans.js';
 import { S, save, update, dateKey, exportJSON, importJSON, resetAll, requestPersistence, canPersist } from './store.js';
 import * as AI from './ai.js';
 
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
@@ -248,6 +248,63 @@ function weekSetsDone() {
   return count;
 }
 
+/* ---------- readaptación después de una pausa ----------
+   Si un músculo pasa más de 14 días sin entrenarse, los ejercicios donde es el principal vuelven
+   escalonados desde la serie más pesada de antes de la pausa. Cuantos más días, más baja y más
+   sesiones lleva volver. Se cuentan solo las sesiones de fuerza (las carreras no). */
+const PAUSE_DAYS = 14;
+const READAPT = [
+  { upTo: 28, steps: [0.7, 0.85, 1] },
+  { upTo: 56, steps: [0.6, 0.75, 0.9, 1] },
+  { upTo: Infinity, steps: [0.5, 0.65, 0.8, 1] },
+];
+const midnight = (t) => { const x = new Date(t); x.setHours(0, 0, 0, 0); return x.getTime(); };
+const calDays = (a, b) => Math.round((midnight(b) - midnight(a)) / DAY);
+const pctTxt = (p) => Math.round(p * 100) + '%';
+/* Momentos de las sesiones que entrenaron cada músculo, en orden. Se recalcula cuando cambian las sesiones. */
+let musCache = { ref: null, len: -1, t: {} };
+function muscleTimes() {
+  const ss = sessions();
+  if (musCache.ref === ss && musCache.len === ss.length) return musCache.t;
+  const t = {};
+  ss.forEach((s) => {
+    const at = new Date(s.date).getTime(), seen = new Set();
+    s.sets.forEach((x) => (EXERCISES[x.ex]?.m || []).forEach((m) => seen.add(m)));
+    seen.forEach((m) => (t[m] || (t[m] = [])).push(at));
+  });
+  Object.values(t).forEach((a) => a.sort((x, y) => x - y));
+  musCache = { ref: ss, len: ss.length, t };
+  return t;
+}
+/* Readaptación del músculo `m` para una sesión en el momento `at` (por defecto, ahora).
+   Devuelve null si no corresponde, o { days, step, steps, pct, from }: días de pausa, número de sesión
+   de la vuelta (0 = la primera), escalones, porcentaje de hoy y la última sesión antes de la pausa. */
+function readaptOf(m, at = Date.now()) {
+  const t = (muscleTimes()[m] || []).filter((x) => x < at);
+  if (!t.length) return null;
+  const tier = (d) => READAPT.find((r) => d <= r.upTo);
+  const now = calDays(t[t.length - 1], at);
+  if (now > PAUSE_DAYS) { const r = tier(now); return { days: now, step: 0, steps: r.steps, pct: r.steps[0], from: t[t.length - 1] }; }
+  for (let i = t.length - 1; i > 0 && t.length - i < 4; i--) {
+    const d = calDays(t[i - 1], t[i]);
+    if (d <= PAUSE_DAYS) continue;
+    const r = tier(d), step = t.length - i;
+    return step < r.steps.length ? { days: d, step, steps: r.steps, pct: r.steps[step], from: t[i - 1] } : null;
+  }
+  return null;
+}
+/* Serie más pesada del ejercicio la última vez que se hizo hasta `until` */
+function heaviestBefore(exId, until) {
+  for (let i = sessions().length - 1; i >= 0; i--) {
+    const s = sessions()[i];
+    if (new Date(s.date).getTime() > until) continue;
+    const ks = s.sets.filter((x) => x.ex === exId).map((x) => x.kg || 0);
+    if (ks.length) return { kg: Math.max(...ks), date: s.date };
+  }
+  return null;
+}
+const raSteps = (ra) => ra.steps.map(pctTxt).join(' → ');
+
 /* ---------- aviso de recuperación al entrenar ---------- */
 const mainM = (id) => EXERCISES[id].m[0];
 const listJoin = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]);
@@ -324,7 +381,9 @@ function renderRecovery() {
   $('#recovList').innerHTML = ms.map((m) => {
     const pct = m.pct;
     const cls = { ready: 'p-ready', almost: 'p-almost', rest: 'p-rest' }[m.st];
-    return `<div class="recov"><div><div>${m.n}</div><div class="sub" style="font-size:12.5px">${esc(m.lastTxt)}</div></div><span class="pill ${cls}">${m.st === 'ready' ? 'listo' : m.left + ' h más'}</span><div class="bar"><i style="width:${pct}%;background:${mFill[m.st]}"></i></div></div>`;
+    const ra = readaptOf(m.id), paused = ra && !ra.step;
+    const raTxt = ra ? (paused ? ` · ${ra.days} días sin entrenar: la próxima sesión va al ${pctTxt(ra.pct)}` : ` · readaptación, sesión ${ra.step + 1} de ${ra.steps.length} al ${pctTxt(ra.pct)}`) : '';
+    return `<div class="recov"><div><div>${m.n}</div><div class="sub" style="font-size:12.5px">${esc(m.lastTxt)}${raTxt}</div></div><span class="pill ${paused ? 'p-almost' : cls}">${paused ? 'readaptar' : m.st === 'ready' ? 'listo' : m.left + ' h más'}</span><div class="bar"><i style="width:${pct}%;background:${mFill[m.st]}"></i></div></div>`;
   }).join('');
   const fig = (view) => `<figure><svg viewBox="0 0 120 230" role="img" aria-label="Recuperación muscular, vista de ${view === 'front' ? 'frente' : 'espalda'}">` +
     figShapes[view].map(([id, shapes]) => {
@@ -454,14 +513,42 @@ function planOf(opt) {
     else if (!allReps) why = `La última vez no llegaste a ${opt.reps} en todas las series (${repsTxt}). Repetimos ${kgLabel(e, base)} hasta completarlas.`;
     else why = `Completaste todo, pero con poco margen: te sobraron ${fmt(avgRir)} repeticiones en promedio y el objetivo es ${opt.rir}. Repetimos el peso.`;
   }
+  // readaptación: el músculo principal estuvo más de 14 días sin entrenarse
+  const ra = !e.band && readaptOf(e.m[0]);
+  if (ra) {
+    const mn = MUSCLES.find((m) => m.id === e.m[0]).n.toLowerCase(), step = e.perHand ? 2 : 2.5;
+    const head = (ra.step ? `Volviste a entrenar ${mn} después de ${ra.days} días sin hacerlo` : `Hace ${ra.days} días que no entrenás ${mn}`)
+      + `: readaptación, sesión ${ra.step + 1} de ${ra.steps.length} (${raSteps(ra)}). `;
+    const base = heaviestBefore(opt.id, ra.from);
+    if (base && base.kg > 0) {
+      kg = roundTo(base.kg * ra.pct, step);
+      why = head + (ra.pct < 1 ? `Hoy ${pctTxt(ra.pct)} de tu serie más pesada antes de la pausa (${kgLabel(e, base.kg)}, ${shortDate(base.date)}).`
+        : `Volvés a tu serie más pesada antes de la pausa (${kgLabel(e, base.kg)}, ${shortDate(base.date)}).`);
+      tag = 'readapt';
+      const inRa = last && new Date(last.date).getTime() > ra.from, lastKg = inRa ? last.sets[0][0] : 0;
+      if (inRa && last.sets.some((p) => p[1] < opt.reps) && lastKg < kg) {
+        // en la vuelta no completaste las repeticiones: repetís ese peso antes de seguir subiendo
+        kg = lastKg; tag = 'same';
+        why += ` Pero la última vez no completaste todas las repeticiones (${last.sets.map((p) => p[1]).join(', ')}): repetimos ${kgLabel(e, kg)} hasta completarlas.`;
+      } else if (inRa && kg - lastKg > base.kg * 0.2) {
+        // nunca más de 20% del peso de antes en una sesión (pasa si antes tuviste que repetir)
+        kg = roundTo(lastKg + base.kg * 0.2, step);
+        why += ` Pero como la última vez hiciste ${kgLabel(e, lastKg)}, subimos de a poco: como máximo 20% de tu peso de antes por sesión (${kgLabel(e, kg)}).`;
+        ra.shown = kg / base.kg;
+      }
+    } else if (!last && kg > 0) {
+      kg = roundTo(kg * ra.pct, step); tag = 'readapt';
+      why = head + `Calculé el peso desde tu 1RM de referencia y lo bajé al ${pctTxt(ra.pct)}.`;
+    } else if (!last) why = head + why;
+  }
   const lv = rdLevel();
   if (lv.f < 1 && !e.band && kg > 0) {
     const adj = roundTo(kg * lv.f, e.perHand ? 2 : 2.5);
-    if (adj < kg) { why += ` Tu puntaje de hoy es ${readiness()}: bajamos ${Math.round((1 - lv.f) * 100)}% (${kgLabel(e, kg)} → ${kgLabel(e, adj)}).`; kg = adj; tag = 'down'; }
+    if (adj < kg) { why += ` Tu puntaje de hoy es ${readiness()}: bajamos ${Math.round((1 - lv.f) * 100)}% (${kgLabel(e, kg)} → ${kgLabel(e, adj)}).`; kg = adj; if (tag !== 'readapt') tag = 'down'; }
   }
-  return { kg, tag, why, prev, inc };
+  return { kg, tag, why, prev, inc, ra: ra || null };
 }
-const tagTxt = (p) => (p.tag === 'up' ? '+' + fmt(p.inc) + ' kg' : p.tag === 'down' ? 'baja' : p.tag === 'first' ? 'primera vez' : 'igual');
+const tagTxt = (p) => (p.tag === 'readapt' ? 'readaptación ' + pctTxt(p.ra.shown || p.ra.pct) : p.tag === 'up' ? '+' + fmt(p.inc) + ' kg' : p.tag === 'down' ? 'baja' : p.tag === 'first' ? 'primera vez' : 'igual');
 
 /* El entrenamiento en curso guarda una copia del día: si editás el plan, lo que ya empezaste no cambia */
 const copyDay = (d) => JSON.parse(JSON.stringify(d));
@@ -506,6 +593,13 @@ function renderEntrenar() {
       + (alt ? `Hoy te conviene <b>${esc(alt.n)}</b>, que tiene todos sus músculos listos.<br><button class="bannerbtn" data-goday="${alt.id}">Hacer ${esc(alt.n)} hoy</button>` : 'Ningún otro día del plan está listo del todo: usá los reemplazos que te sugiero en cada ejercicio.') + '</span>';
     const gb = rb.querySelector('[data-goday]'); if (gb) gb.onclick = () => switchDay(gb.dataset.goday);
   }
+  // aviso de readaptación: músculos principales del día que vuelven de una pausa
+  const raB = $('#raBanner'), raL = [];
+  new Set(P.slots.map((_, i) => mainM(curOpt(i).id))).forEach((m) => { const ra = readaptOf(m); if (ra) raL.push({ mu: ms[m], ra }); });
+  raB.hidden = !(raL.length && !c.started && !doneCount());
+  if (!raB.hidden) raB.innerHTML = '<span class="ms">trending_down</span><span><b>Readaptación.</b> '
+    + raL.map(({ mu, ra }) => `${mu.n}: ${ra.step ? `sesión ${ra.step + 1} de ${ra.steps.length} después de ${ra.days} días sin entrenar` : `${ra.days} días sin entrenar`}, hoy al ${pctTxt(ra.pct)}.`).join(' ')
+    + ' Los pesos sugeridos ya están bajados; si los querés cambiar, escribí otro peso en la serie.</span>';
   $('#exList').innerHTML = P.slots.length ? P.slots.map((_, ei) => `<div class="ex" id="ex${ei}"></div>`).join('')
     : `<p class="empty">Este día no tiene ejercicios todavía. <button class="linkbtn" id="emptyEdit">Agregalos en Mi plan</button></p>`;
   if (!P.slots.length) { $('#setsTotal').textContent = 0; $('#emptyEdit').onclick = () => openPlan({ mode: 'day', dayId: P.id }); }
@@ -572,7 +666,7 @@ function renderEx(ei, ms = muscleState()) {
     </button>
     <div class="rule" id="why${ei}" hidden>
       <p>${pl.why}</p>
-      <p class="rule-base">Regla: si completás todas las series con el RIR objetivo, sube ${e.band ? 'la banda' : fmt(pl.inc) + ' kg'}. Si te falta alguna repetición, repetís el peso. Si te faltan 2 o más en una serie, baja 10%.</p>
+      <p class="rule-base">Regla: si completás todas las series con el RIR objetivo, sube ${e.band ? 'la banda' : fmt(pl.inc) + ' kg'}. Si te falta alguna repetición, repetís el peso. Si te faltan 2 o más en una serie, baja 10%.${pl.ra ? ' Readaptación: con más de 14 días sin entrenar el músculo, bajás 30% (hasta 4 semanas), 40% (hasta 8) o 50% (más de 8) y volvés escalonado a tu peso de antes.' : ''}</p>
     </div>
     <div class="sets">
       <span class="h" style="text-align:center">#</span><span class="h">Anterior</span><span class="h">${e.band ? 'banda' : e.added ? 'lastre' : 'kg'}</span><span class="h">reps</span><span class="h">RIR</span><span></span>
@@ -1224,12 +1318,14 @@ function openSess(list) {
   $('#sessBody').innerHTML = list.map((s) => {
     const d = new Date(s.date), groups = [];
     s.sets.forEach((x) => { const g = groups[groups.length - 1]; if (g && g.ex === x.ex && g.slot === x.slot) g.sets.push(x); else groups.push({ ex: x.ex, slot: x.slot, sets: [x] }); });
-    const ton = s.sets.reduce((a, x) => a + setTon(x), 0), sv = s.survey;
+    const ton = s.sets.reduce((a, x) => a + setTon(x), 0), sv = s.survey, at = d.getTime();
+    const ras = [...new Set(s.sets.map((x) => EXERCISES[x.ex]?.m[0]).filter(Boolean))].map((m) => ({ mu: MUSCLES.find((y) => y.id === m), ra: readaptOf(m, at) })).filter((x) => x.ra);
     return `<div class="sd">
       <div><div class="sd-n">${esc(s.dayName || 'Entrenamiento')}</div>
         <div class="sub">${WD_LONG[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]} · ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}${s.planName ? ' · ' + esc(s.planName) : ''}</div>
         <div class="sub">${plural(s.sets.length, 'serie', 'series')} · ${fmtTon(ton)} movidos${s.dur ? ' · ' + Math.round(s.dur / 60) + ' min' : ''}</div></div>
       ${groups.map((g) => { const e = EXERCISES[g.ex] || {}; return `<div class="sd-ex"><div class="sd-exn">${esc(exName(g.ex))}</div>${g.sets.map((x, i) => `<div class="sd-set"><span>${i + 1}</span><span>${kgLabel(e, x.kg)} × ${x.reps}</span><span>RIR ${x.rir}</span></div>`).join('')}</div>`; }).join('')}
+      ${ras.length ? `<p class="recnote">Readaptación: ${ras.map(({ mu, ra }) => `${mu.n.toLowerCase()} sesión ${ra.step + 1} de ${ra.steps.length} (${pctTxt(ra.pct)}) después de ${ra.days} días sin entrenar`).join('; ')}.</p>` : ''}
       ${(s.swaps || []).length ? `<p class="sub note">${s.swaps.map((w) => `Cambiaste ${esc(exName(w.from))} por ${esc(exName(w.to))}${w.reason === 'recuperacion' ? ' por recuperación' : ''}.`).join(' ')}</p>` : ''}
       ${sv ? `<p class="sub note">Encuesta: fatiga ${sv.fat.toLowerCase()} · ${({ No: 'sin molestia articular', Leve: 'molestia articular leve', 'Sí': 'con dolor articular' })[sv.joint] || ''} · rendimiento ${sv.perf.toLowerCase()}.</p>` : ''}
     </div>`;
@@ -1395,6 +1491,8 @@ function coachContext() {
     });
   } else lines.push('Todavía no registró entrenamientos en la app.');
   lines.push('1RM estimados: ' + MAIN_LIFTS.map((l) => `${l.n} ${currentORM(l.id) ? fmt(currentORM(l.id)) + ' kg' : 'sin dato'}`).join(', ') + '.');
+  const raC = MUSCLES.map((m) => ({ m, ra: readaptOf(m.id) })).filter((x) => x.ra);
+  if (raC.length) lines.push('Readaptación por pausa de más de 14 días (la app baja los pesos sugeridos): ' + raC.map(({ m, ra }) => `${m.n} ${ra.days} días, sesión ${ra.step + 1} de ${ra.steps.length} al ${pctTxt(ra.pct)}`).join('; ') + '.');
   lines.push(`Entrenos esta semana: ${weekCount()}/${planDays()}. Semanas seguidas cumpliendo: ${streak()}.`);
   const runs = S().runs.slice(-3);
   if (runs.length) lines.push('Últimas carreras: ' + runs.map((r) => `${shortDate(r.date)} ${fmt(r.dist / 1000, 2)} km en ${mmss(r.dur)}`).join('; ') + '.');

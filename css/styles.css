@@ -106,6 +106,32 @@ nav button[aria-current="page"]{color:var(--pink)}
 .chart text{fill:var(--dim);font-family:var(--mono);font-size:9px}
 .vol{display:grid;grid-template-columns:92px 1fr 44px;gap:10px;align-items:center;font-size:13.5px;padding:7px 0}
 .vol span:last-child{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+/* historial por mes y año */
+.hist{display:flex;flex-direction:column;gap:22px}
+.histnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:-8px}
+.histnav b{font-size:22px;font-weight:500;letter-spacing:-.02em}
+.iconbtn:disabled{opacity:.25;cursor:default}
+.cal button.d{width:100%}
+.note{font-size:12px;margin:8px 0 0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.xs{display:block;font-size:12px;margin-top:2px}
+.dl{display:block;font-family:var(--mono);font-size:11px;margin-top:3px;white-space:nowrap}
+.dl.up{color:var(--green-hi)}
+.dl.down{color:var(--pink)}
+.dl.eq,.dl.new{color:var(--dim)}
+.volm{grid-template-columns:92px 1fr 64px;align-items:start}
+.volm .bar{margin-top:7px}
+.srow{width:100%;text-align:left}
+.srow .ms{font-size:18px;color:var(--dim);margin-left:4px}
+.mrow{display:grid;grid-template-columns:84px 1fr 104px;align-items:center}
+.sd{display:flex;flex-direction:column;gap:12px;padding:4px 6px 18px}
+.sd+.sd{border-top:1px solid var(--line);padding-top:18px}
+.sd-n{font-size:19px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
+.sd-ex{background:var(--bg);border-radius:14px;padding:10px 12px}
+.sd-exn{font-size:14.5px;font-weight:500;margin-bottom:4px}
+.sd-set{display:grid;grid-template-columns:22px 1fr auto;gap:8px;font-size:13.5px;padding:3px 0;font-variant-numeric:tabular-nums}
+.sd-set span:first-child{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.sd-set span:last-child{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
 /* coach */
 textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;resize:none;font-size:15px;line-height:1.4}
 textarea:focus{border-color:var(--pink);outline:none}

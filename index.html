@@ -145,12 +145,18 @@
 
     <!-- PROGRESO -->
     <section class="screen" data-screen="progreso" hidden>
-      <div class="eyebrow"><span id="monthLbl"></span><span>Progreso</span></div>
-      <div>
-        <div class="big" style="font-size:64px" id="monthBig">0</div>
-        <p class="sub" style="margin:8px 0 14px" id="monthSub"></p>
-        <div class="cal" id="cal"></div>
-        <div class="legend" style="margin-top:12px"><span><i style="background:var(--pink)"></i>Fuerza</span><span><i style="background:var(--green)"></i>Correr</span><span><i style="background:rgba(246,237,241,.18)"></i>Descanso</span></div>
+      <div class="eyebrow"><span>Historial</span><span>Progreso</span></div>
+      <div class="hist">
+        <div class="seg" role="group" aria-label="Ver historial por">
+          <button id="hMes" aria-pressed="true">Mes</button>
+          <button id="hAnio" aria-pressed="false">Año</button>
+        </div>
+        <div class="histnav">
+          <button class="iconbtn" id="hPrev" aria-label="Anterior"><span class="ms">chevron_left</span></button>
+          <b id="hLbl" aria-live="polite"></b>
+          <button class="iconbtn" id="hNext" aria-label="Siguiente"><span class="ms">chevron_right</span></button>
+        </div>
+        <div class="hist" id="histBox"></div>
       </div>
       <div>
         <h2>Nivel de fuerza</h2>
@@ -306,6 +312,10 @@
     <div class="eyebrow"><span id="catT">Elegir ejercicio</span><button id="catX" aria-label="Cerrar"><span class="ms">close</span></button></div>
     <input class="search" id="catQ" type="search" placeholder="Buscar ejercicio" aria-label="Buscar ejercicio" autocomplete="off">
     <div class="catlist" id="catList"></div>
+  </div>
+  <div class="sheet tall" id="sess" role="dialog" aria-modal="true" aria-labelledby="sessT" hidden>
+    <div class="eyebrow"><span id="sessT">Entrenamiento</span><button id="sessX" aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div class="catlist" id="sessBody"></div>
   </div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden>
     <div class="eyebrow"><span id="sheetT">Registrar</span><button id="sheetX" aria-label="Cerrar"><span class="ms">close</span></button></div>

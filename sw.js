@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin conexión.
 // Cambiá VERSION en cada publicación para que los celulares bajen la nueva versión.
-const VERSION = 'carga-v3';
+const VERSION = 'carga-v4';
 const SHELL = [
   './',
   './index.html',

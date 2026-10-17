@@ -3,7 +3,7 @@ import * as PL from './plans.js';
 import { S, save, update, dateKey, exportJSON, importJSON, resetAll, requestPersistence, canPersist } from './store.js';
 import * as AI from './ai.js';
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
@@ -1031,24 +1031,216 @@ function renderLevels() {
 }
 $('#stdM').onclick = () => { update((st) => { st.profile.sex = 'M'; }); renderLevels(); };
 $('#stdF').onclick = () => { update((st) => { st.profile.sex = 'F'; }); renderLevels(); };
-function renderProgreso() {
-  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
-  $('#monthLbl').textContent = MONTHS[mo][0].toUpperCase() + MONTHS[mo].slice(1) + ' ' + y;
-  const sDays = new Set(sessions().map((s) => dateKey(s.date)).filter((k) => k.startsWith(y + '-' + String(mo + 1).padStart(2, '0'))));
-  const rDays = new Set(S().runs.map((r) => dateKey(r.date)));
-  const first = new Date(y, mo, 1), offset = (first.getDay() + 6) % 7, dim = new Date(y, mo + 1, 0).getDate();
-  let c = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d) => `<span class="wd">${d}</span>`).join('');
-  for (let i = 0; i < offset; i++) c += '<span></span>';
-  let runsMonth = 0;
-  for (let d = 1; d <= dim; d++) {
-    const k = dateKey(new Date(y, mo, d)), isRun = rDays.has(k);
-    if (isRun) runsMonth++;
-    const cls = sDays.has(k) ? 's' : isRun ? 'r' : d === now.getDate() ? 't' : d > now.getDate() ? 'f' : '';
-    c += `<span class="d ${cls}">${d}</span>`;
+/* ---------- historial por mes y año ---------- */
+let histView = 'mes', histY = new Date().getFullYear(), histM = new Date().getMonth();
+const monthName = (m) => cap(MONTHS[m]);
+const inMonth = (d, y, m) => { d = new Date(d); return d.getFullYear() === y && d.getMonth() === m; };
+const inYear = (d, y) => new Date(d).getFullYear() === y;
+const exName = (id) => (EXERCISES[id] ? EXERCISES[id].n : id);
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+/* Kilos movidos en una serie (peso × repeticiones); no cuenta lastre ni bandas */
+const setTon = (x) => { const e = EXERCISES[x.ex]; return !e || e.added || e.band ? 0 : (x.kg || 0) * (x.reps || 0) * (e.perHand ? 2 : 1); };
+const fmtTon = (kg) => (kg >= 1000 ? fmt(kg / 1000, 1) + ' t' : fmt(kg, 0) + ' kg');
+/* Primer registro (fuerza o carrera): hasta ahí se puede ir hacia atrás */
+function firstDate() {
+  const t = sessions().map((s) => new Date(s.date).getTime()).concat(S().runs.map((r) => new Date(r.date).getTime()));
+  return t.length ? new Date(Math.min(...t)) : new Date();
+}
+const firstIdx = () => { const f = firstDate(); return f.getFullYear() * 12 + f.getMonth(); };
+/* Resumen de los entrenamientos cuya fecha cumple `keep` */
+function periodStats(keep) {
+  const r = { ss: [], days: new Set(), sets: 0, ton: 0, mus: {}, best: {}, nsets: {}, runs: 0 };
+  sessions().forEach((s) => {
+    if (!keep(s.date)) return;
+    r.ss.push(s); r.days.add(dateKey(s.date));
+    s.sets.forEach((x) => {
+      const e = EXERCISES[x.ex];
+      r.sets++; r.ton += setTon(x);
+      (e ? e.m : []).forEach((m) => (r.mus[m] = (r.mus[m] || 0) + 1));
+      r.nsets[x.ex] = (r.nsets[x.ex] || 0) + 1;
+      if (x.kg > 0 && e && !e.added && !e.band) r.best[x.ex] = Math.max(r.best[x.ex] || 0, e1rm(x.kg, x.reps, x.rir));
+    });
+  });
+  r.runs = S().runs.filter((x) => keep(x.date)).length;
+  return r;
+}
+/* Cambio respecto del período anterior: ↑ mejoró, ↓ bajó, = igual */
+function delta(cur, prev, f = (v) => fmt(v, 0)) {
+  if (prev == null) return '';
+  const d = cur - prev;
+  if (Math.abs(d) < 0.05) return '<span class="dl eq">= igual</span>';
+  return `<span class="dl ${d > 0 ? 'up' : 'down'}">${d > 0 ? '↑ +' : '↓ −'}${f(Math.abs(d))}</span>`;
+}
+/* Ejercicios ordenados: los 4 básicos primero, después los que tienen más series */
+const exOrder = (ids, nsets) => ids.sort((a, b) => {
+  const ia = MAIN_LIFTS.findIndex((l) => l.id === a), ib = MAIN_LIFTS.findIndex((l) => l.id === b);
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || (nsets[b] || 0) - (nsets[a] || 0);
+});
+/* Semanas del mes (las que tienen su jueves en el mes) en las que se llegó a la meta de días del plan.
+   La semana en curso cuenta solo si ya se cumplió. */
+function weeksMet(y, m) {
+  const goal = planDays(), now = new Date();
+  let met = 0, tot = 0;
+  for (let w = weekStart(new Date(y, m, 1)); w <= new Date(y, m + 1, 0); w.setDate(w.getDate() + 7)) {
+    const thu = new Date(w); thu.setDate(thu.getDate() + 3);
+    if (thu.getMonth() !== m || w > now) continue;
+    const end = new Date(w); end.setDate(end.getDate() + 7);
+    const days = new Set(sessions().filter((s) => { const d = new Date(s.date); return d >= w && d < end; }).map((s) => dateKey(s.date))).size;
+    if (days >= goal) met++;
+    if (days >= goal || end <= now) tot++;
   }
-  $('#cal').innerHTML = c;
-  $('#monthBig').textContent = sDays.size + (sDays.size === 1 ? ' día' : ' días');
-  $('#monthSub').textContent = 'con fuerza · ' + runsMonth + (runsMonth === 1 ? ' carrera' : ' carreras') + ' · meta ' + planDays() + ' por semana';
+  return { met, tot };
+}
+function renderHist() {
+  const now = new Date(), maxI = now.getFullYear() * 12 + now.getMonth(), minI = firstIdx();
+  $('#hMes').setAttribute('aria-pressed', histView === 'mes'); $('#hAnio').setAttribute('aria-pressed', histView === 'anio');
+  if (histView === 'mes') {
+    const i = histY * 12 + histM;
+    $('#hLbl').textContent = monthName(histM) + ' ' + histY;
+    $('#hPrev').disabled = i <= minI; $('#hNext').disabled = i >= maxI;
+    $('#hPrev').setAttribute('aria-label', 'Mes anterior'); $('#hNext').setAttribute('aria-label', 'Mes siguiente');
+    renderMonth();
+  } else {
+    $('#hLbl').textContent = histY;
+    $('#hPrev').disabled = histY <= Math.floor(minI / 12); $('#hNext').disabled = histY >= now.getFullYear();
+    $('#hPrev').setAttribute('aria-label', 'Año anterior'); $('#hNext').setAttribute('aria-label', 'Año siguiente');
+    renderYear();
+  }
+}
+function histStep(dir) {
+  if (histView === 'mes') { const i = histY * 12 + histM + dir; histY = Math.floor(i / 12); histM = i % 12; } else histY += dir;
+  renderHist();
+}
+$('#hPrev').onclick = () => histStep(-1);
+$('#hNext').onclick = () => histStep(1);
+$('#hMes').onclick = () => { histView = 'mes'; renderHist(); };
+$('#hAnio').onclick = () => { histView = 'anio'; renderHist(); };
+function renderMonth() {
+  const y = histY, m = histM, now = new Date(), tk = dateKey();
+  const cur = periodStats((d) => inMonth(d, y, m));
+  const pm = (m + 11) % 12, py = m ? y : y - 1;
+  const isNow = y === now.getFullYear() && m === now.getMonth();
+  // el mejor 1RM se compara con todo el mes anterior; las cantidades del mes en curso, con el anterior hasta el mismo día
+  const prev = py * 12 + pm >= firstIdx() ? periodStats((d) => inMonth(d, py, pm)) : null;
+  const prevQ = prev && isNow ? periodStats((d) => inMonth(d, py, pm) && new Date(d).getDate() <= now.getDate()) : prev;
+  // calendario: los días con fuerza se tocan para ver el entrenamiento
+  const rDays = new Set(S().runs.map((r) => dateKey(r.date)));
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate();
+  let cal = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d) => `<span class="wd">${d}</span>`).join('');
+  for (let i = 0; i < offset; i++) cal += '<span></span>';
+  for (let d = 1; d <= dim; d++) {
+    const k = dateKey(new Date(y, m, d));
+    if (cur.days.has(k)) cal += `<button class="d s" data-day="${k}" aria-label="Ver entrenamiento del ${d} de ${MONTHS[m]}">${d}</button>`;
+    else cal += `<span class="d ${rDays.has(k) ? 'r' : k === tk ? 't' : k > tk ? 'f' : ''}">${d}</span>`;
+  }
+  const wm = weeksMet(y, m);
+  let h = `<div>
+    <div class="big" style="font-size:64px">${plural(cur.days.size, 'día', 'días')}</div>
+    <p class="sub" style="margin:8px 0 14px">con fuerza · ${plural(cur.runs, 'carrera', 'carreras')}${wm.tot ? ` · meta de ${planDays()} por semana cumplida en ${wm.met} de ${plural(wm.tot, 'semana', 'semanas')}` : ''}</p>
+    <div class="cal">${cal}</div>
+    <div class="legend" style="margin-top:12px"><span><i style="background:var(--pink)"></i>Fuerza (tocá para ver)</span><span><i style="background:var(--green)"></i>Correr</span><span><i style="background:rgba(246,237,241,.18)"></i>Descanso</span></div>
+  </div>`;
+  if (!cur.ss.length) {
+    $('#histBox').innerHTML = h + `<p class="empty">No hay entrenamientos de fuerza en ${MONTHS[m]} ${y}.</p>`;
+    bindHist(cur); return;
+  }
+  h += `<div>
+    <div class="stats">
+      <div><b>${cur.ss.length}</b><span>entrenamientos</span>${delta(cur.ss.length, prevQ && prevQ.ss.length)}</div>
+      <div><b>${cur.sets}</b><span>series</span>${delta(cur.sets, prevQ && prevQ.sets)}</div>
+      <div><b>${fmtTon(cur.ton)}</b><span>movidos</span>${delta(cur.ton, prevQ && prevQ.ton, fmtTon)}</div>
+    </div>
+    <p class="sub note">${prev ? `Comparado con ${MONTHS[pm]}${isNow ? ' hasta el día ' + now.getDate() : ''}.` : 'Es tu primer mes registrado: desde el próximo ves la comparación.'}</p>
+  </div>`;
+  // series por músculo en el mes; la barra llena es la meta semanal de cada músculo por las semanas del mes
+  h += `<div><h2>Series por músculo</h2><div style="margin-top:6px">` + MUSCLES.map((mu) => {
+    const a = cur.mus[mu.id] || 0, goal = Math.round(mu.target * dim / 7);
+    return `<div class="vol volm"><span>${mu.n}</span><div class="bar" style="height:8px"><i style="width:${Math.min(100, a / goal * 100)}%;background:${a >= goal ? 'var(--green)' : 'var(--pink)'}"></i></div><span>${a}${delta(a, prevQ && (prevQ.mus[mu.id] || 0))}</span></div>`;
+  }).join('') + `</div><p class="sub note">La barra llena es tu meta semanal por las semanas del mes.</p></div>`;
+  // mejor 1RM estimado de cada ejercicio contra el mes anterior
+  const ids = exOrder(Object.keys(cur.best), cur.nsets);
+  if (ids.length) h += `<div><h2>1RM estimado por ejercicio</h2>` + ids.map((id) => {
+    const p = prev && prev.best[id];
+    return `<div class="row"><span>${esc(exName(id))}<span class="xs sub">${plural(cur.nsets[id], 'serie', 'series')}</span></span><span class="num">${fmt(cur.best[id])} kg${prev ? (p ? delta(cur.best[id], p, (v) => fmt(v) + ' kg') : '<span class="dl new">nuevo</span>') : ''}</span></div>`;
+  }).join('') + `<p class="sub note">El mejor del mes en cada ejercicio, contra el mejor del mes anterior. Si una flecha no sube durante varios meses, ahí te estancaste.</p></div>`;
+  h += `<div><h2>Entrenamientos</h2>` + cur.ss.slice().reverse().map((s) => `
+    <button class="row srow" data-sess="${s.id}">
+      <span><b>${shortDate(s.date)}</b> · ${esc(s.dayName || 'Entrenamiento')}<span class="xs sub">${esc(s.planName || '')}</span></span>
+      <span class="sub num">${plural(s.sets.length, 'serie', 'series')}${s.dur ? ' · ' + Math.round(s.dur / 60) + ' min' : ''}<span class="ms" aria-hidden="true">chevron_right</span></span>
+    </button>`).join('') + '</div>';
+  $('#histBox').innerHTML = h;
+  bindHist(cur);
+}
+function bindHist(cur) {
+  $$('#histBox [data-day]').forEach((b) => (b.onclick = () => openSess(cur.ss.filter((s) => dateKey(s.date) === b.dataset.day))));
+  $$('#histBox [data-sess]').forEach((b) => (b.onclick = () => openSess(cur.ss.filter((s) => s.id === b.dataset.sess))));
+}
+function renderYear() {
+  const y = histY, now = new Date(), minI = firstIdx();
+  const cur = periodStats((d) => inYear(d, y));
+  // el año en curso se compara con el anterior hasta la misma fecha
+  const isNow = y === now.getFullYear(), cut = new Date(now); cut.setFullYear(y - 1);
+  const prev = y - 1 >= Math.floor(minI / 12) ? periodStats((d) => inYear(d, y - 1) && (!isNow || new Date(d) <= cut)) : null;
+  let h = `<div>
+    <div class="big" style="font-size:64px">${plural(cur.days.size, 'día', 'días')}</div>
+    <p class="sub" style="margin:8px 0 14px">con fuerza en ${y} · ${plural(cur.runs, 'carrera', 'carreras')}</p>
+    <div class="stats">
+      <div><b>${cur.ss.length}</b><span>entrenamientos</span>${delta(cur.ss.length, prev && prev.ss.length)}</div>
+      <div><b>${cur.sets}</b><span>series</span>${delta(cur.sets, prev && prev.sets)}</div>
+      <div><b>${fmtTon(cur.ton)}</b><span>movidos</span>${delta(cur.ton, prev && prev.ton, fmtTon)}</div>
+    </div>
+    ${prev ? `<p class="sub note">Comparado con ${y - 1}${isNow ? ' hasta el ' + now.getDate() + ' de ' + MONTHS[now.getMonth()] : ''}.</p>` : ''}
+  </div>`;
+  // mes a mes, desde el primer mes con datos hasta hoy; un toque abre el mes
+  const from = Math.max(0, minI - y * 12), to = y === now.getFullYear() ? now.getMonth() : 11;
+  const months = [];
+  for (let m = from; m <= to; m++) months.push({ m, st: periodStats((d) => inMonth(d, y, m)) });
+  const maxD = Math.max(1, ...months.map((x) => x.st.days.size));
+  h += `<div><h2>Mes a mes</h2>` + months.map(({ m, st }, i) => {
+    const pv = i ? months[i - 1].st : null;
+    return `<button class="row srow mrow" data-month="${m}">
+      <span>${monthName(m)}</span>
+      <div class="bar" style="height:8px"><i style="width:${st.days.size / maxD * 100}%;background:var(--pink)"></i></div>
+      <span class="sub num">${st.days.size ? plural(st.days.size, 'día', 'días') + ' · ' + fmtTon(st.ton) : '—'}${pv && (st.ton || pv.ton) ? delta(st.ton, pv.ton, fmtTon) : ''}</span>
+    </button>`;
+  }).join('') + `<p class="sub note">Días con fuerza y kilos movidos; la flecha compara con el mes anterior. Tocá un mes para verlo.</p></div>`;
+  // cada ejercicio: mejor 1RM del primer mes del año en que lo hiciste contra el del último
+  const rows = [];
+  exOrder(Object.keys(cur.best), cur.nsets).forEach((id) => {
+    const ms = months.filter((x) => x.st.best[id]);
+    if (ms.length < 2) return;
+    const a = ms[0], b = ms[ms.length - 1];
+    rows.push(`<div class="row"><span>${esc(exName(id))}<span class="xs sub">${monthName(a.m)} → ${monthName(b.m)} · mejor ${fmt(cur.best[id])} kg</span></span><span class="num">${fmt(a.st.best[id])} → ${fmt(b.st.best[id])} kg${delta(b.st.best[id], a.st.best[id], (v) => fmt(v) + ' kg')}</span></div>`);
+  });
+  if (rows.length) h += `<div><h2>Avance del año · 1RM estimado</h2>${rows.join('')}<p class="sub note">Primer mes contra último mes en que hiciste cada ejercicio.</p></div>`;
+  else if (!cur.ss.length) h += `<p class="empty">No hay entrenamientos de fuerza en ${y}.</p>`;
+  $('#histBox').innerHTML = h;
+  $$('#histBox [data-month]').forEach((b) => (b.onclick = () => { histView = 'mes'; histM = +b.dataset.month; renderHist(); $('#main').scrollTop = 0; }));
+}
+/* Detalle de uno o más entrenamientos (los de un día del calendario) */
+function openSess(list) {
+  if (!list.length) return;
+  $('#sessT').textContent = list.length === 1 ? shortDate(list[0].date) : shortDate(list[0].date) + ' · ' + list.length + ' entrenamientos';
+  $('#sessBody').innerHTML = list.map((s) => {
+    const d = new Date(s.date), groups = [];
+    s.sets.forEach((x) => { const g = groups[groups.length - 1]; if (g && g.ex === x.ex && g.slot === x.slot) g.sets.push(x); else groups.push({ ex: x.ex, slot: x.slot, sets: [x] }); });
+    const ton = s.sets.reduce((a, x) => a + setTon(x), 0), sv = s.survey;
+    return `<div class="sd">
+      <div><div class="sd-n">${esc(s.dayName || 'Entrenamiento')}</div>
+        <div class="sub">${WD_LONG[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]} · ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}${s.planName ? ' · ' + esc(s.planName) : ''}</div>
+        <div class="sub">${plural(s.sets.length, 'serie', 'series')} · ${fmtTon(ton)} movidos${s.dur ? ' · ' + Math.round(s.dur / 60) + ' min' : ''}</div></div>
+      ${groups.map((g) => { const e = EXERCISES[g.ex] || {}; return `<div class="sd-ex"><div class="sd-exn">${esc(exName(g.ex))}</div>${g.sets.map((x, i) => `<div class="sd-set"><span>${i + 1}</span><span>${kgLabel(e, x.kg)} × ${x.reps}</span><span>RIR ${x.rir}</span></div>`).join('')}</div>`; }).join('')}
+      ${(s.swaps || []).length ? `<p class="sub note">${s.swaps.map((w) => `Cambiaste ${esc(exName(w.from))} por ${esc(exName(w.to))}${w.reason === 'recuperacion' ? ' por recuperación' : ''}.`).join(' ')}</p>` : ''}
+      ${sv ? `<p class="sub note">Encuesta: fatiga ${sv.fat.toLowerCase()} · ${({ No: 'sin molestia articular', Leve: 'molestia articular leve', 'Sí': 'con dolor articular' })[sv.joint] || ''} · rendimiento ${sv.perf.toLowerCase()}.</p>` : ''}
+    </div>`;
+  }).join('');
+  $('#sess').hidden = false; $('#sheetBg').hidden = false; $('#sessBody').scrollTop = 0;
+}
+function closeSess() { if ($('#sess').hidden) return; $('#sess').hidden = true; $('#sheetBg').hidden = true; }
+$('#sessX').onclick = closeSess;
+
+function renderProgreso() {
+  renderHist();
   renderLevels();
 
   // 1RM por semana (últimas 12)
@@ -1568,9 +1760,9 @@ $('#resetYes').onclick = () => { resetAll(); $('#resetConfirm').hidden = true; b
 /* ---------- botón + ---------- */
 function sheet(open) { $('#sheet').hidden = !open; $('#sheetBg').hidden = !open; $('#fab').setAttribute('aria-expanded', open); $('#fab').classList.toggle('open', open); }
 $('#fab').onclick = () => sheet($('#sheet').hidden);
-$('#sheetBg').onclick = () => { sheet(false); openSurvey(false); closeCatalog(); };
+$('#sheetBg').onclick = () => { sheet(false); openSurvey(false); closeCatalog(); closeSess(); };
 $('#sheetX').onclick = () => sheet(false);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { sheet(false); openSurvey(false); closeCatalog(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { sheet(false); openSurvey(false); closeCatalog(); closeSess(); } });
 $$('[data-act]').forEach((b) => (b.onclick = () => {
   sheet(false);
   const a = b.dataset.act;

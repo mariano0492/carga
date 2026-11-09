@@ -3,7 +3,7 @@ import * as PL from './plans.js';
 import { S, save, update, dateKey, exportJSON, importJSON, resetAll, requestPersistence, canPersist } from './store.js';
 import * as AI from './ai.js';
 
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
@@ -2161,4 +2161,12 @@ if (!S().profile) showOnboarding();
 else { ensurePlan(); go(location.hash.slice(1) || 'hoy'); restoreRunSnap(); if (run.on) bgHold('run', true); maybeWelcome(); }
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // cuando se instala una versión nueva, recarga para usarla; con un entreno o una carrera en curso solo avisa
+  const hadSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadSW) return;
+    const c = S().current;
+    if ((c && c.started) || run.on) toast('Hay una versión nueva de Carga: se aplica la próxima vez que abras la app');
+    else location.reload();
+  });
 }

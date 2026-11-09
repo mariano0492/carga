@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin conexión.
 // Cambiá VERSION en cada publicación para que los celulares bajen la nueva versión.
-const VERSION = 'carga-v6';
+const VERSION = 'carga-v7';
 const SHELL = [
   './',
   './index.html',
@@ -15,8 +15,10 @@ const SHELL = [
   './icons/icon-512.png',
 ];
 
+// GitHub Pages deja los archivos 10 minutos en la caché del navegador: al instalar una versión
+// se piden con cache: 'reload' para no guardar copias viejas bajo el nombre nuevo.
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -39,7 +41,8 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const cached = await cache.match(req, { ignoreSearch: url.origin === location.origin });
-      const network = fetch(req)
+      // los archivos propios se revalidan con el servidor (no con la caché del navegador)
+      const network = (url.origin === location.origin ? fetch(url.href, { cache: 'no-cache' }) : fetch(req))
         .then((res) => {
           if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
           return res;

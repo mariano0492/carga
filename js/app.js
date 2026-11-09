@@ -3,12 +3,13 @@ import * as PL from './plans.js';
 import { S, save, update, dateKey, exportJSON, importJSON, resetAll, requestPersistence, canPersist } from './store.js';
 import * as AI from './ai.js';
 
-const VERSION = '1.5.1';
+const VERSION = '1.5.2';
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const fmt = (n, d = 1) => Number(n).toLocaleString('es-AR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+const clock = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600); return h ? h + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') : mmss(s); };
 const mmss = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const mss = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 const roundTo = (v, step) => Math.round(v / step) * step;
@@ -450,7 +451,7 @@ let bwDraft = null;
 function renderHoy() {
   const d = new Date();
   $('#todayLbl').textContent = WD_LONG[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3);
-  liveTick();
+  headIdle = null; liveTick();
   showQuote(); renderRecovery(); renderWellness();
   const cur = S().current;
   if (cur && cur.started) {
@@ -615,13 +616,33 @@ function switchDay(id) {
   renderEntrenar(); $('#main').scrollTop = 0;
 }
 
-/* Cronómetro del entrenamiento en curso (Hoy y Entrenar). Corre desde la primera serie: editar el día no lo cambia. */
+/* Tarjeta de Hoy sin entreno en curso: lo que toca (o lo que ya entrenaste hoy). Se arma una vez por render. */
+let headIdle = null;
+function hoyIdleHead() {
+  const today = sessions().filter((s) => dateKey(s.date) === todayK());
+  if (today.length) {
+    const last = today[today.length - 1];
+    return [`Hoy entrenaste ${last.dayName}`, `${plural(last.sets.length, 'serie', 'series')} · el próximo es ${nextDay().n}`];
+  }
+  const P = ensureCurrent().day, pend = P.slots.some((x) => x.pend);
+  return [P.id === 'pend' ? 'Hoy toca pendientes' : `Hoy toca ${P.n}${pend ? ' + pendientes' : ''}`, P.id === 'pend' ? P.t || '' : P.t || `${plural(liveSlots().length, 'ejercicio', 'ejercicios')} · ≈ ${PL.estMinutes(P)} min`];
+}
+/* Cronómetro del entrenamiento en curso (Hoy y Entrenar). Corre desde la primera serie: editar el día no lo cambia.
+   Las tarjetas llevan el fondo de la bienvenida según la hora del día. */
 function liveTick() {
-  const c = S().current, on = !!(c && c.started), t = on ? mmss((Date.now() - c.started) / 1000) : '00:00';
-  $('#wkClock span').textContent = t; $('#wkClock').classList.toggle('off', !on);
-  $('#hoyClock').hidden = !on; $('#hoyClock span').textContent = t;
-  $('#hoyLive').hidden = !on; $('#hoyHead').classList.toggle('live', on); $('#wkHead').classList.toggle('live', on);
-  if (on) $('#hoyLive').innerHTML = `<span>${esc(c.day.n)} · ${doneCount()} de ${liveSlots().reduce((a, i) => a + curOpt(i).sets, 0)} series</span><span class="ms">chevron_right</span>`;
+  const c = S().current, on = !!(c && c.started), t = on ? clock((Date.now() - c.started) / 1000) : '00:00', tod = partOfDay();
+  for (const id of ['#hoyHead', '#wkHead']) { const h = $(id); if (h.dataset.tod !== tod) h.dataset.tod = tod; h.classList.toggle('live', on); }
+  $('#wkClock .hc-t').textContent = t; $('#wkClock').classList.toggle('off', !on);
+  $('#hoyClock').hidden = !on; $('#hoyClock .hc-t').textContent = t;
+  if (on) {
+    headIdle = null;
+    $('#hoyN').textContent = c.day.n;
+    $('#hoySub').innerHTML = `${doneCount()} de ${liveSlots().reduce((a, i) => a + curOpt(i).sets, 0)} series<span class="ms" aria-hidden="true">chevron_right</span>`;
+  } else if (!headIdle) {
+    headIdle = hoyIdleHead();
+    $('#hoyN').textContent = headIdle[0];
+    $('#hoySub').innerHTML = esc(headIdle[1]) + '<span class="ms" aria-hidden="true">chevron_right</span>';
+  }
 }
 setInterval(liveTick, 1000);
 function renderEntrenar() {
@@ -2095,7 +2116,7 @@ $('#obGo').onclick = () => {
 /* ---------- bienvenida: la primera vez que abrís la app cada día ----------
    Informativa: saludo, fecha, el entreno que toca, la semana y los avisos del día.
    El fondo cambia con la hora: mañana más rosado, tarde como la paleta de la app, noche más oscuro. */
-const partOfDay = (h = new Date().getHours()) => (h >= 5 && h < 12 ? 'manana' : h >= 12 && h < 19 ? 'tarde' : 'noche');
+function partOfDay(h = new Date().getHours()) { return  (h >= 5 && h < 12 ? 'manana' : h >= 12 && h < 19 ? 'tarde' : 'noche'); }
 function renderWelcome() {
   const d = new Date(), name = (S().profile.name || '').trim(), ms = muscleState(), cur = S().current;
   $('#welcome').dataset.tod = partOfDay();
@@ -2105,7 +2126,7 @@ function renderWelcome() {
   let k, n, sub, go = 'Entrenar';
   if (cur && cur.started) {
     k = 'Estás entrenando'; n = cur.day.n; go = 'Seguir entrenando';
-    sub = `${mmss((Date.now() - cur.started) / 1000)} · ${doneCount()} de ${liveSlots().reduce((a, i) => a + curOpt(i).sets, 0)} series`;
+    sub = `${clock((Date.now() - cur.started) / 1000)} · ${doneCount()} de ${liveSlots().reduce((a, i) => a + curOpt(i).sets, 0)} series`;
   } else if (today.length) {
     const last = today[today.length - 1];
     k = 'Hoy ya entrenaste'; n = last.dayName; go = '';

@@ -22,13 +22,11 @@
 
     <!-- HOY -->
     <section class="screen" data-screen="hoy">
-      <div class="headbar headcard" id="hoyHead">
-        <div class="headbar-l">
-          <div class="headbar-top"><h1 class="head-t" id="todayLbl"></h1><button class="livepill" id="hoyClock" data-go="entrenar" aria-label="Entrenamiento en curso: volver a Entrenar" hidden><i aria-hidden="true"></i><span>00:00</span></button></div>
-          <button class="head-sub linkish" id="hoyLive" data-go="entrenar" hidden></button>
-        </div>
-        <button class="iconbtn" data-go="ajustes" aria-label="Ajustes"><span class="ms">settings</span></button>
-      </div>
+      <div class="headtop"><h1 class="head-date" id="todayLbl"></h1><button class="gearbtn" data-go="ajustes" aria-label="Ajustes"><span class="ms">settings</span></button></div>
+      <button class="headcard" id="hoyHead" data-go="entrenar">
+        <span class="hc-txt"><b class="hc-n" id="hoyN"></b><span class="hc-sub" id="hoySub"></span></span>
+        <span class="hc-clock" id="hoyClock" role="timer" aria-label="Tiempo de entrenamiento"><span class="hc-k"><i aria-hidden="true"></i>Tiempo</span><span class="hc-t">00:00</span></span>
+      </button>
       <figure class="quote">
         <blockquote id="quoteTxt"></blockquote>
         <figcaption><span>Frase del día</span><button id="quoteNext">Otra frase</button></figcaption>
@@ -76,11 +74,9 @@
 
     <!-- ENTRENAR -->
     <section class="screen" data-screen="entrenar" hidden>
-      <div class="headbar headcard" id="wkHead">
-        <div class="headbar-l">
-          <div class="headbar-top"><h1 class="head-t" id="wkTitle"></h1><span class="livepill off" id="wkClock" role="timer" aria-label="Tiempo de entrenamiento"><i aria-hidden="true"></i><span>00:00</span></span></div>
-          <div class="head-sub" id="wkSub"></div>
-        </div>
+      <div class="headcard" id="wkHead">
+        <span class="hc-txt"><h1 class="hc-n" id="wkTitle"></h1><span class="hc-sub" id="wkSub"></span></span>
+        <span class="hc-clock off" id="wkClock" role="timer" aria-label="Tiempo de entrenamiento"><span class="hc-k"><i aria-hidden="true"></i>Tiempo</span><span class="hc-t">00:00</span></span>
       </div>
       <div class="planbar"><span id="planLbl"></span><button class="linkbtn planlink" data-go="plan"><span class="ms">edit_calendar</span>Mi plan</button></div>
       <div class="daychips" role="group" aria-label="Día de entrenamiento" id="dayPick"></div>

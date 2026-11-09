@@ -28,7 +28,7 @@ export const splitDayNames = (sp) => sp.days.map((k) => DAY_TPL[k]().n);
 const WHY = {};
 Object.values(DAY_TPL).forEach((f) => f().slots.forEach((s) => s.opts.forEach((x) => { if (x.why && !WHY[x.id]) WHY[x.id] = x.why; })));
 
-const isIso = (e) => ['brazos', 'pant'].includes(e.m[0]) || /face|fly|jaros|pull-apart|patada|femoral/i.test(e.n);
+const isIso = (e) => !!e.iso;
 export function defaultsFor(id) {
   const e = EXERCISES[id];
   if (e.big) return { sets: 4, reps: 5, rir: 2, rest: 180 };
@@ -79,6 +79,7 @@ export function reviewPlan(plan) {
   plan.days.forEach((d, i) => { if (!d.slots.length) out.push({ lvl: 'warn', t: `El día ${i + 1} (${d.n}) no tiene ejercicios. Agregale al menos uno.` }); });
   MUSCLES.forEach((m) => {
     const n = ws[m.id] || 0;
+    if (m.opt && !n) return;
     if (n < m.target * 0.6) out.push({ lvl: n < m.target * 0.4 ? 'warn' : 'info', t: `Pocas series de ${m.n.toLowerCase()} por semana: ${n} de ${m.target}. Sumá un ejercicio de ${m.n.toLowerCase()} en algún día.` });
     else if (n > m.target * 2) out.push({ lvl: 'info', t: `Muchas series de ${m.n.toLowerCase()} por semana (${n}, la meta es ${m.target}). Puede costarte recuperarte.` });
   });

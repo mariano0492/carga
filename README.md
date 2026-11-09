@@ -6,8 +6,12 @@ Es una app web instalable (PWA): no tiene servidor propio ni cuentas. Tus datos 
 
 ## Qué hace
 
-- **Hoy:** músculos listos para entrenar (figura del cuerpo), puntaje del día según sueño, energía y molestias, frase y canción del día, peso corporal.
-- **Entrenar:** los días de tu plan en rotación (si faltás, el que toca te espera), ejercicios intercambiables por otros similares, marca anterior en cada serie, progresión automática con la regla visible, descanso entre series, récords y encuesta al terminar.
+- **Bienvenida:** la primera vez que abrís la app cada día te saluda por tu nombre (se carga en Ajustes) con la fecha, el entreno que toca, cómo vas en la semana, cuántos músculos están listos y los avisos del día (pendientes, recuperación, readaptación). El fondo cambia con la hora: mañana, tarde y noche. Se cierra con "Entrenar", "Ir a Hoy" o deslizando hacia arriba.
+- **Hoy:** fecha en una tarjeta con el cronómetro del entreno en curso, músculos listos para entrenar (figura del cuerpo), puntaje del día según sueño, energía y molestias, frase del día, peso corporal.
+- **Entrenar:** los días de tu plan en rotación (si faltás, el que toca te espera), cronómetro desde la primera serie, marca anterior en cada serie, progresión automática con la regla visible, descanso entre series, récords y encuesta al terminar.
+- **Cambios durante el entreno:** tocando el nombre de un ejercicio lo cambiás (primero las opciones del bloque, después el mismo músculo y al final el resto del catálogo); con − y + sumás o sacás series (las hechas no se pueden sacar); podés saltear un ejercicio o agregar otro al final. El cronómetro no se reinicia. Al terminar, la app pregunta qué cambios guardar en el plan.
+- **Pendientes:** los ejercicios que quedaron sin ninguna serie se suman al final del próximo día, si el músculo ya se recuperó y ese día no lo vuelve a entrenar (en el hombro cuenta la zona: anterior, lateral o posterior). Si el músculo se entrenó con otro ejercicio, solo se recupera lo que falta para la meta semanal. Desde Entrenar se pueden hacer aparte o sacar; si el día pasa de 90 minutos, la app sugiere hacerlos aparte. Vencen cuando volvés a entrenar ese músculo o a los 14 días. Se basa en que, con el mismo volumen semanal, repartir las series en más o menos días cambia poco el resultado (Schoenfeld y col., 2019).
+- **Músculos y ejercicios:** pecho, espalda, hombros, bíceps, tríceps, cuádriceps, isquios, glúteos, pantorrillas y abdomen (opcional), con 76 ejercicios. El catálogo ordena el hombro en anterior, lateral y posterior.
 - **Aviso de recuperación:** si al músculo principal de un ejercicio le faltan más de 12 h para recuperarse, la app avisa en bordó y sugiere un reemplazo de un músculo listo (un toque para aceptarlo; queda anotado en el historial). Si le faltan menos de 12 h, muestra una nota rosa. Al abrir Entrenar, si el día que toca tiene músculos sin recuperar, sugiere otro día del plan. El tiempo de recuperación sube 25% con más de 6 series para ese músculo y baja 25% con 2 o menos.
 - **Readaptación después de una pausa:** si un músculo pasa más de 14 días sin entrenarse con pesas, los ejercicios donde es el principal vuelven escalonados desde la serie más pesada de antes de la pausa: 15 a 28 días → 70%, 85% y 100% en 3 sesiones; 29 a 56 días → 60%, 75%, 90% y 100%; más de 8 semanas → 50%, 65%, 80% y 100%. El peso sugerido ya viene bajado y cada ejercicio explica por qué; se puede cambiar a mano. Si en la vuelta no completás las repeticiones, repetís ese peso, y nunca sube más de 20% del peso de antes en una sesión. Hoy marca los músculos para readaptar, Entrenar avisa al empezar y el historial anota cada sesión de readaptación.
 - **Mi plan:** asistente de 3 pasos (tipo → días → división). Tipos: Fuerza (planes generados para 2 a 5 días con división sugerida) y Manual (días vacíos que armás vos). Editor por día: nombre, ejercicios del catálogo, series, repeticiones, RIR y descanso, orden de días y ejercicios. Muestra series por semana contra la meta de cada músculo y recomendaciones. Los planes anteriores quedan guardados.
@@ -49,7 +53,7 @@ Cada cambio que se sube a la rama `main` se publica en GitHub Pages. Antes de pu
 - `index.html`: pantallas.
 - `css/styles.css`: estilos (paleta bordó, rosa y verdes).
 - `js/app.js`: lógica de la app.
-- `js/data.js`: ejercicios, plantillas de días y divisiones por cantidad de días, alimentos, recetas, frases y canciones.
+- `js/data.js`: ejercicios, plantillas de días y divisiones por cantidad de días, alimentos, recetas y frases.
 - `js/plans.js`: generar, editar y revisar planes.
 - `js/store.js`: guardado local y copias de seguridad.
 - `js/ai.js`: llamadas a Claude.

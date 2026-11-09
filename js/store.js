@@ -15,7 +15,9 @@ function blank() {
     plans: [],              // { id, type, split, name, created, days:[{ id, n, t, slots }] }
     activePlan: null,       // id del plan en uso
     rot: { done: [], pin: null }, // días hechos en esta vuelta de la rotación; pin: próximo día elegido a mano
-    current: null,          // entrenamiento en curso, con una copia del día: { planId, day, started, sel, alt, sets }
+    current: null,          // entrenamiento en curso, con una copia del día: { planId, day, base, started, edited, sel, alt, sets }
+    pending: [],            // ejercicios que quedaron sin hacer: { id, ex, sets, reps, rir, rest, m, p, ml, from, dayName }
+    pendMode: null,         // pendientes en el próximo día: null = sumarlos, 'apart' = día aparte, 'skip' = sin pendientes
     sessions: [],           // entrenamientos terminados: { id, date, planId, planName, dayId, dayName, dur, sets, swaps, survey }
     bodyweight: [],         // { d:'YYYY-MM-DD', kg }
     wellness: {},           // 'YYYY-MM-DD': { s, e, m }
@@ -24,6 +26,7 @@ function blank() {
     chat: [],               // { role, content }
     savedRecipes: [],
     lastFeedback: null,
+    welcomeDay: null,       // último día en que se mostró la bienvenida
   };
 }
 

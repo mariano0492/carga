@@ -1,19 +1,26 @@
-// Contenido fijo de la app: ejercicios, programa, alimentos, recetas, frases y canciones.
+// Contenido fijo de la app: ejercicios, programa, alimentos, recetas y frases.
 
 /* ---------- Músculos ----------
-   `need`: horas de recuperación. Los que tienen `fig` aparecen en la figura del cuerpo. */
+   `need`: horas de recuperación. Los que tienen `fig` aparecen en la figura del cuerpo.
+   `opt`: grupo opcional (abdomen): no entra en los planes generados ni en los avisos de volumen si no lo entrenás. */
 export const MUSCLES = [
   { id: 'pecho', n: 'Pecho', need: 60, fig: true, target: 10 },
   { id: 'espalda', n: 'Espalda', need: 60, fig: true, target: 12 },
   { id: 'hombros', n: 'Hombros', need: 48, fig: true, target: 9 },
-  { id: 'isquios', n: 'Isquios y glúteos', need: 72, fig: true, target: 9 },
+  { id: 'biceps', n: 'Bíceps', need: 48, fig: true, target: 6 },
+  { id: 'triceps', n: 'Tríceps', need: 48, fig: true, target: 6 },
   { id: 'cuad', n: 'Cuádriceps', need: 72, fig: true, target: 9 },
+  { id: 'isquios', n: 'Isquios', need: 72, fig: true, target: 8 },
+  { id: 'gluteos', n: 'Glúteos', need: 72, fig: true, target: 8 },
   { id: 'pant', n: 'Pantorrillas', need: 48, fig: true, target: 6 },
-  { id: 'brazos', n: 'Brazos', need: 48, fig: false, target: 6 },
+  { id: 'abdomen', n: 'Abdomen', need: 36, fig: false, target: 6, opt: true },
 ];
+/* Zonas del hombro, en el orden en que las muestra el catálogo */
+export const SHOULDER_ZONES = [['anterior', 'Hombro anterior'], ['lateral', 'Hombro lateral'], ['posterior', 'Hombro posterior']];
 
 /* ---------- Ejercicios ----------
-   big: sube 5 kg por paso · perHand: peso por mancuerna · added: lastre sobre el peso corporal · band: banda elástica */
+   big: sube 5 kg por paso · perHand: peso por mancuerna · added: lastre sobre el peso corporal · band: banda elástica
+   iso: aislamiento (series de 10 a 15) · secs: las repeticiones son segundos · z: zona del hombro */
 export const EXERCISES = {
   // Rodilla dominante
   sentadilla: { n: 'Sentadilla', m: ['cuad'], big: true,
@@ -22,7 +29,7 @@ export const EXERCISES = {
     tip: 'Barra apoyada sobre los hombros delanteros y codos altos. El torso queda más vertical: bajá profundo sin dejar caer los codos.' },
   prensa: { n: 'Prensa de piernas', m: ['cuad'], big: true,
     tip: 'Pies en el centro de la plataforma. Bajá hasta 90° de rodilla sin despegar la cadera del asiento. No bloquees las rodillas arriba.' },
-  bulgara: { n: 'Sentadilla búlgara', m: ['cuad'], perHand: true,
+  bulgara: { n: 'Sentadilla búlgara', m: ['cuad', 'gluteos'], perHand: true,
     tip: 'Pie trasero apoyado en un banco. Bajá vertical hasta que la rodilla de atrás casi toque el piso. El peso va sobre la pierna de adelante.' },
   hack: { n: 'Sentadilla hack', m: ['cuad'], big: true,
     tip: 'Espalda apoyada en el respaldo, pies a la mitad de la plataforma. Bajá controlado y subí sin trabar las rodillas.' },
@@ -33,7 +40,7 @@ export const EXERCISES = {
     tip: 'Bajá las mancuernas hasta los costados del pecho con los codos a 45°. Subí juntándolas arriba sin chocarlas.' },
   banca_inclinada: { n: 'Press inclinado', m: ['pecho'],
     tip: 'Banco a 30°. Bajá la barra a la parte alta del pecho. Mantené los omóplatos apretados contra el banco.' },
-  fondos: { n: 'Fondos en paralelas', m: ['pecho', 'brazos'], added: true,
+  fondos: { n: 'Fondos en paralelas', m: ['pecho', 'triceps'], added: true,
     tip: 'Inclinate un poco hacia adelante para cargar el pecho. Bajá hasta que los hombros queden a la altura de los codos.' },
   flexiones: { n: 'Flexiones lastradas', m: ['pecho'], added: true,
     tip: 'Disco en la espalda o chaleco. Cuerpo en línea recta, pecho hasta casi tocar el piso.' },
@@ -49,44 +56,44 @@ export const EXERCISES = {
   remo_t: { n: 'Remo en T', m: ['espalda'],
     tip: 'Pecho sobre el apoyo o torso inclinado. Tirá con los codos cerca del cuerpo.' },
   // Bíceps
-  curl_barra: { n: 'Curl con barra', m: ['brazos'],
+  curl_barra: { n: 'Curl con barra', m: ['biceps'], iso: true,
     tip: 'Codos pegados al cuerpo. Subí sin balancear el torso y bajá en dos segundos.' },
-  curl_mancuernas: { n: 'Curl con mancuernas', m: ['brazos'], perHand: true,
+  curl_mancuernas: { n: 'Curl con mancuernas', m: ['biceps'], iso: true, perHand: true,
     tip: 'Girá la palma hacia arriba mientras subís. Un brazo por vez o los dos juntos, sin impulso.' },
-  curl_martillo: { n: 'Curl martillo', m: ['brazos'], perHand: true,
+  curl_martillo: { n: 'Curl martillo', m: ['biceps'], iso: true, perHand: true,
     tip: 'Palmas enfrentadas todo el recorrido. Trabaja también el antebrazo.' },
-  curl_polea: { n: 'Curl en polea', m: ['brazos'],
+  curl_polea: { n: 'Curl en polea', m: ['biceps'], iso: true,
     tip: 'Tensión constante. Codos quietos y apretá arriba.' },
   // Pantorrillas
-  pant_pie: { n: 'Elevación de talones de pie', m: ['pant'],
+  pant_pie: { n: 'Elevación de talones de pie', m: ['pant'], iso: true,
     tip: 'Bajá el talón por debajo del escalón y subí bien arriba con pausa de un segundo.' },
-  pant_sentado: { n: 'Elevación de talones sentado', m: ['pant'],
+  pant_sentado: { n: 'Elevación de talones sentado', m: ['pant'], iso: true,
     tip: 'Rodillas a 90°. Recorrido completo y lento: trabaja el sóleo.' },
-  pant_prensa: { n: 'Pantorrillas en prensa', m: ['pant'],
+  pant_prensa: { n: 'Pantorrillas en prensa', m: ['pant'], iso: true,
     tip: 'Solo la punta de los pies en la plataforma. Estirá bien abajo y empujá con los dedos.' },
   // Bisagra de cadera
-  peso_muerto: { n: 'Peso muerto', m: ['isquios', 'espalda'], big: true,
+  peso_muerto: { n: 'Peso muerto', m: ['isquios', 'gluteos', 'espalda'], big: true,
     tip: 'Barra pegada a las piernas todo el recorrido. Antes de despegar, tensá dorsales como si quisieras doblar la barra. Empujá el piso con las piernas; la cadera y los hombros suben juntos.' },
-  pm_hex: { n: 'Peso muerto con barra hexagonal', m: ['isquios', 'espalda'], big: true,
+  pm_hex: { n: 'Peso muerto con barra hexagonal', m: ['isquios', 'gluteos', 'espalda'], big: true,
     tip: 'Parate en el centro de la barra y agarrá las manijas altas. Empujá el piso como en una sentadilla-peso muerto; el torso queda más vertical que en el convencional.' },
-  pm_sumo: { n: 'Peso muerto sumo', m: ['isquios', 'espalda'], big: true,
+  pm_sumo: { n: 'Peso muerto sumo', m: ['isquios', 'gluteos', 'espalda'], big: true,
     tip: 'Pies bien abiertos y puntas hacia afuera. Rodillas empujando hacia afuera y cadera cerca de la barra. Los brazos caen verticales entre las piernas.' },
-  pm_rumano: { n: 'Peso muerto rumano', m: ['isquios'], big: true,
+  pm_rumano: { n: 'Peso muerto rumano', m: ['isquios', 'gluteos'], big: true,
     tip: 'Empezás arriba. Llevá la cadera hacia atrás con rodillas apenas flexionadas hasta sentir tensión en los isquios. La barra baja pegada a los muslos.' },
-  buenos_dias: { n: 'Buenos días con barra', m: ['isquios'],
+  buenos_dias: { n: 'Buenos días con barra', m: ['isquios', 'gluteos'],
     tip: 'Barra en la espalda como en la sentadilla. Inclinate llevando la cadera atrás con la espalda neutra hasta casi quedar paralelo al piso.' },
-  curl_femoral: { n: 'Curl femoral', m: ['isquios'],
+  curl_femoral: { n: 'Curl femoral acostado', m: ['isquios'], iso: true,
     tip: 'Cadera pegada al banco. Flexioná hasta tocar los glúteos y bajá lento.' },
   // Empuje vertical
-  press_militar: { n: 'Press militar', m: ['hombros'],
+  press_militar: { n: 'Press militar', m: ['hombros'], z: 'anterior',
     tip: 'Apretá glúteos y abdomen para no arquear la espalda baja. Llevá la cabeza hacia atrás al subir la barra y metela debajo de ella arriba del todo.' },
-  press_mancuernas: { n: 'Press con mancuernas sentado', m: ['hombros'], perHand: true,
+  press_mancuernas: { n: 'Press con mancuernas sentado', m: ['hombros'], z: 'anterior', perHand: true,
     tip: 'Respaldo casi vertical. Bajá las mancuernas a la altura de las orejas con los codos un poco adelante del cuerpo y empujá hasta juntarlas arriba.' },
-  push_press: { n: 'Push press', m: ['hombros'],
+  push_press: { n: 'Push press', m: ['hombros'], z: 'anterior',
     tip: 'Flexioná apenas las rodillas y extendé rápido para lanzar la barra. Terminá el recorrido con los brazos, bloqueando arriba.' },
-  landmine: { n: 'Landmine press', m: ['hombros'],
+  landmine: { n: 'Landmine press', m: ['hombros'], z: 'anterior',
     tip: 'De pie o arrodillado, empujá la punta de la barra hacia arriba y adelante. Mantené las costillas abajo y el core firme.' },
-  press_arnold: { n: 'Press Arnold', m: ['hombros'], perHand: true,
+  press_arnold: { n: 'Press Arnold', m: ['hombros'], z: 'anterior', perHand: true,
     tip: 'Arrancá con palmas mirándote y rotá mientras subís hasta terminar con palmas hacia adelante. Bajá deshaciendo la rotación.' },
   // Tirón vertical
   dominadas: { n: 'Dominadas lastradas', m: ['espalda'], added: true,
@@ -98,30 +105,92 @@ export const EXERCISES = {
   jalon_neutro: { n: 'Jalón agarre neutro', m: ['espalda'],
     tip: 'Usá el agarre en V o paralelo. Llevá los codos hacia abajo y atrás y controlá la subida en dos segundos.' },
   // Glúteos
-  hip_thrust: { n: 'Hip thrust', m: ['isquios'],
+  hip_thrust: { n: 'Hip thrust', m: ['gluteos'],
     tip: 'Mentón hacia el pecho y costillas abajo. Pausa de un segundo arriba apretando glúteos. Las tibias quedan verticales en la posición final.' },
-  hip_maquina: { n: 'Hip thrust en máquina', m: ['isquios'],
+  hip_maquina: { n: 'Hip thrust en máquina', m: ['gluteos'],
     tip: 'Ajustá el respaldo a la altura de los omóplatos. Subí hasta alinear rodillas, cadera y hombros y sostené un segundo.' },
-  puente: { n: 'Puente de glúteo con barra', m: ['isquios'],
+  puente: { n: 'Puente de glúteo con barra', m: ['gluteos'],
     tip: 'Acostado con la barra sobre la cadera. Empujá con los talones y apretá glúteos arriba sin arquear la espalda.' },
-  patada_polea: { n: 'Patada de glúteo en polea', m: ['isquios'],
+  patada_polea: { n: 'Patada de glúteo en polea', m: ['gluteos'],
     tip: 'Tobillera en la polea baja. Llevá la pierna hacia atrás sin rotar la cadera y sin arquear la espalda baja.' },
   // Hombro posterior
-  face_pull: { n: 'Face pull', m: ['hombros'],
+  face_pull: { n: 'Face pull', m: ['hombros'], z: 'posterior', iso: true,
     tip: 'Tirá hacia la frente separando la cuerda y rotando los hombros hacia afuera. Protege los hombros de todo el trabajo de press.' },
-  reverse_fly: { n: 'Reverse fly en máquina', m: ['hombros'],
+  reverse_fly: { n: 'Reverse fly en máquina', m: ['hombros'], z: 'posterior', iso: true,
     tip: 'Pecho contra el respaldo, brazos casi estirados. Abrí hacia atrás apretando entre los omóplatos y volvé lento.' },
-  pajaros: { n: 'Pájaros con mancuernas', m: ['hombros'], perHand: true,
+  pajaros: { n: 'Pájaros con mancuernas', m: ['hombros'], z: 'posterior', iso: true, perHand: true,
     tip: 'Inclinado hacia adelante con la espalda neutra. Abrí los brazos hacia los costados guiando con los codos, sin balanceo.' },
-  pull_apart: { n: 'Band pull-apart', m: ['hombros'], band: true,
+  pull_apart: { n: 'Band pull-apart', m: ['hombros'], z: 'posterior', iso: true, band: true,
     tip: 'Brazos estirados a la altura del pecho. Separá la banda hasta tocarte el pecho y volvé controlando.' },
   // Tríceps
-  press_frances: { n: 'Press francés', m: ['brazos'],
+  press_frances: { n: 'Press francés', m: ['triceps'], iso: true,
     tip: 'Acostado, bajá la barra hacia la frente moviendo solo los codos. Codos apuntando al techo.' },
-  ext_polea: { n: 'Extensión de tríceps en polea', m: ['brazos'],
+  ext_polea: { n: 'Extensión de tríceps en polea', m: ['triceps'], iso: true,
     tip: 'Codos pegados al cuerpo. Extendé del todo y separá la cuerda abajo.' },
-  press_cerrado: { n: 'Press banca agarre cerrado', m: ['brazos', 'pecho'],
+  press_cerrado: { n: 'Press banca agarre cerrado', m: ['triceps', 'pecho'],
     tip: 'Manos al ancho de hombros. Codos cerca del cuerpo al bajar.' },
+  // Hombro lateral y anterior
+  vuelos_laterales: { n: 'Vuelos laterales con mancuernas', m: ['hombros'], z: 'lateral', perHand: true, iso: true,
+    tip: 'Torso apenas inclinado hacia adelante y codos un poco flexionados. Subí abriendo hasta la altura de los hombros guiando con los codos, sin encoger el trapecio. Bajá en dos segundos.' },
+  vuelos_polea: { n: 'Vuelos laterales en polea', m: ['hombros'], z: 'lateral', iso: true,
+    tip: 'Polea baja del lado contrario al brazo que trabaja. La tensión arranca desde abajo: subí hasta la altura del hombro y bajá controlando.' },
+  vuelos_maquina: { n: 'Vuelos laterales en máquina', m: ['hombros'], z: 'lateral', iso: true,
+    tip: 'Hombros alineados con el eje de la máquina. Empujá con los codos hacia afuera y arriba, pausa de un segundo y bajá lento.' },
+  y_raise: { n: 'Y-raise en banco inclinado', m: ['hombros'], z: 'lateral', perHand: true, iso: true,
+    tip: 'Pecho apoyado en un banco a 30–45°. Subí los brazos en forma de Y con los pulgares hacia arriba. Peso liviano y sin impulso.' },
+  remo_menton_polea: { n: 'Remo al mentón en polea', m: ['hombros'], z: 'lateral',
+    tip: 'Agarre al ancho de hombros o más. Tirá con los codos hacia afuera hasta la altura del pecho; no subas más si te molesta el hombro.' },
+  elev_frontal: { n: 'Elevación frontal', m: ['hombros'], z: 'anterior', perHand: true, iso: true,
+    tip: 'Subí la mancuerna adelante hasta la altura de los ojos con el codo apenas flexionado. Sin balancear el torso.' },
+  // Bíceps
+  curl_scott: { n: 'Curl Scott (predicador)', m: ['biceps'], iso: true,
+    tip: 'Axilas bien apoyadas en el banco. Bajá hasta casi estirar el codo sin soltar la tensión y subí sin despegar los brazos.' },
+  curl_inclinado: { n: 'Curl inclinado con mancuernas', m: ['biceps'], perHand: true, iso: true,
+    tip: 'Banco a 45–60°, brazos colgando detrás del cuerpo. El bíceps trabaja estirado: subí sin adelantar los codos.' },
+  curl_bayesiano: { n: 'Curl bayesiano en polea', m: ['biceps'], iso: true,
+    tip: 'De espaldas a la polea, con el brazo atrás del cuerpo. Flexioná el codo sin moverlo hacia adelante y volvé hasta estirar del todo.' },
+  curl_concentrado: { n: 'Curl concentrado', m: ['biceps'], perHand: true, iso: true,
+    tip: 'Sentado, codo apoyado en la cara interna del muslo. Subí lento y apretá arriba un segundo.' },
+  // Tríceps
+  ext_sobre_cabeza_polea: { n: 'Extensión sobre la cabeza en polea', m: ['triceps'], iso: true,
+    tip: 'De espaldas a la polea con la cuerda detrás de la cabeza. Codos apuntando adelante y quietos; extendé del todo y volvé hasta sentir el estiramiento.' },
+  ext_sobre_cabeza: { n: 'Extensión sobre la cabeza con mancuerna', m: ['triceps'], iso: true,
+    tip: 'Una mancuerna con las dos manos detrás de la cabeza. Codos cerca de las orejas; bajá hasta estirar bien el tríceps y extendé.' },
+  rompecraneos: { n: 'Rompecráneos con mancuernas', m: ['triceps'], perHand: true, iso: true,
+    tip: 'Acostado, palmas enfrentadas. Bajá las mancuernas al costado de la cabeza moviendo solo los codos.' },
+  patada_triceps: { n: 'Patada de tríceps', m: ['triceps'], perHand: true, iso: true,
+    tip: 'Torso inclinado y codo pegado al cuerpo. Extendé hacia atrás hasta estirar el brazo y apretá un segundo.' },
+  fondos_banco: { n: 'Fondos en banco', m: ['triceps'], added: true,
+    tip: 'Manos en el borde del banco y cadera cerca. Bajá hasta 90° de codo y subí empujando con los tríceps.' },
+  // Pecho y espalda: aislamientos
+  cruce_poleas: { n: 'Cruce de poleas', m: ['pecho'], iso: true,
+    tip: 'Un paso adelante y torso apenas inclinado. Juntá las manos frente al pecho con los codos un poco flexionados y abrí hasta sentir el estiramiento.' },
+  peck_deck: { n: 'Peck deck (aperturas en máquina)', m: ['pecho'], iso: true,
+    tip: 'Asiento a la altura que deje las manos en línea con el pecho. Cerrá apretando el pecho y abrí lento sin pasar la línea de los hombros.' },
+  aperturas: { n: 'Aperturas con mancuernas', m: ['pecho'], perHand: true, iso: true,
+    tip: 'Acostado, codos apenas flexionados y fijos. Abrí hasta sentir el estiramiento en el pecho y cerrá como abrazando un árbol.' },
+  pullover_polea: { n: 'Pullover en polea', m: ['espalda'], iso: true,
+    tip: 'Brazos casi estirados y torso inclinado. Llevá la barra o la cuerda hasta los muslos usando los dorsales, sin doblar los codos.' },
+  encogimientos: { n: 'Encogimientos para trapecio', m: ['espalda'], perHand: true, iso: true,
+    tip: 'Mancuernas a los costados. Subí los hombros hacia las orejas, pausa de un segundo y bajá. Sin girar los hombros.' },
+  // Piernas: máquinas
+  ext_cuad: { n: 'Extensión de cuádriceps', m: ['cuad'], iso: true,
+    tip: 'Rodilla alineada con el eje de la máquina. Extendé del todo, pausa de un segundo arriba y bajá lento.' },
+  curl_femoral_sentado: { n: 'Curl femoral sentado', m: ['isquios'], iso: true,
+    tip: 'Cadera bien atrás en el asiento y el rodillo arriba de las rodillas. Flexioná del todo y volvé hasta casi estirar: así el isquio trabaja estirado.' },
+  abductores: { n: 'Abductores en máquina', m: ['gluteos'], iso: true,
+    tip: 'Abrí las piernas contra los apoyos y volvé despacio. Inclinarte un poco hacia adelante carga más el glúteo.' },
+  aductores: { n: 'Aductores en máquina', m: ['gluteos'], iso: true,
+    tip: 'Trabaja la cara interna del muslo. Cerrá las piernas apretando y abrí controlando hasta un estiramiento cómodo.' },
+  // Abdomen
+  crunch_polea: { n: 'Crunch en polea', m: ['abdomen'], iso: true,
+    tip: 'Arrodillado con la cuerda junto a la cabeza. Enrollá la columna llevando los codos hacia las rodillas; la cadera no se mueve.' },
+  elev_piernas: { n: 'Elevación de piernas colgado', m: ['abdomen'], added: true, iso: true,
+    tip: 'Colgado de la barra, subí las piernas enrollando la pelvis hacia arriba. Sin balanceo; si cuesta, subí las rodillas flexionadas.' },
+  plancha: { n: 'Plancha', m: ['abdomen'], added: true, secs: true, iso: true,
+    tip: 'Antebrazos debajo de los hombros y cuerpo en línea recta. Apretá glúteos y abdomen. Las repeticiones son segundos.' },
+  rueda: { n: 'Rueda abdominal', m: ['abdomen'], added: true, iso: true,
+    tip: 'Desde rodillas, rodá hacia adelante con el abdomen apretado y sin hundir la espalda baja. Volvé tirando con el abdomen.' },
 };
 
 /* Los 4 levantamientos que se usan para el nivel de fuerza y el 1RM inicial */
@@ -201,21 +270,32 @@ const REAR = (sets, reps, first = 'face_pull') => block('Hombro posterior', 'del
   o('pajaros', 3, 15, 2, 60, { why: 'Sin máquina, solo mancuernas livianas' }),
   o('pull_apart', 3, 20, 2, 45, { why: 'Con banda elástica, sirve también de entrada en calor' }),
 ], first, sets, reps);
+const LATERAL = (sets, reps, first = 'vuelos_laterales') => block('Hombro lateral', 'deltoide lateral', [
+  o('vuelos_laterales', 3, 12, 2, 60, { why: 'El básico para el hombro lateral' }),
+  o('vuelos_polea', 3, 15, 2, 60, { why: 'Tensión constante desde abajo' }),
+  o('vuelos_maquina', 3, 15, 2, 60, { why: 'Recorrido guiado, fácil de progresar' }),
+  o('y_raise', 3, 15, 2, 60, { why: 'Pecho apoyado, sin impulso' }),
+  o('remo_menton_polea', 3, 12, 2, 60, { why: 'Compuesto: permite más peso' }),
+], first, sets, reps);
 const BICEPS = (sets, reps, first = 'curl_barra') => block('Bíceps', 'bíceps y antebrazo', [
   o('curl_barra', 3, 10, 2, 60, { why: 'Curl clásico con barra' }),
   o('curl_mancuernas', 3, 12, 2, 60, { why: 'Cada brazo por separado, con giro de muñeca' }),
   o('curl_martillo', 3, 12, 2, 60, { why: 'Más antebrazo y braquial' }),
   o('curl_polea', 3, 15, 2, 45, { why: 'Tensión constante en todo el recorrido' }),
+  o('curl_inclinado', 3, 12, 2, 60, { why: 'Trabaja el bíceps estirado' }),
+  o('curl_scott', 3, 12, 2, 60, { why: 'Brazo apoyado: no se puede hacer trampa' }),
 ], first, sets, reps);
 const TRICEPS = (sets, reps, first = 'fondos') => block('Tríceps', 'tríceps', [
   o('fondos', 3, 8, 2, 120, { why: 'Con el peso del cuerpo, permite lastre' }),
   o('press_frances', 3, 10, 2, 90, { why: 'Aísla el tríceps, carga moderada' }),
   o('ext_polea', 3, 12, 2, 60, { why: 'Suave para los codos, tensión constante' }),
   o('press_cerrado', 3, 8, 2, 120, { why: 'Permite cargar pesado, también trabaja pecho' }),
+  o('ext_sobre_cabeza_polea', 3, 12, 2, 60, { why: 'Estira la cabeza larga del tríceps' }),
 ], first, sets, reps);
 const HAMS = (sets, reps, first = 'pm_rumano') => block('Isquios', 'isquiotibiales', [
   o('pm_rumano', 3, 8, 2, 120, { why: 'Bisagra con barra, mucho estiramiento' }),
   o('curl_femoral', 3, 12, 2, 60, { why: 'Aísla isquios sin cargar la espalda' }),
+  o('curl_femoral_sentado', 3, 12, 2, 60, { why: 'Sentado: el isquio trabaja más estirado' }),
   o('buenos_dias', 3, 8, 3, 120, { why: 'Bisagra liviana con barra' }),
 ], first, sets, reps);
 const CALVES = (sets, reps, first = 'pant_pie') => block('Pantorrillas', 'gemelos y sóleo', [
@@ -228,11 +308,11 @@ export const DAY_TPL = {
   full_a: () => ({ n: 'Completo A', t: 'Sentadilla y empuje', slots: [SQUAT(5, 5), BENCH(5, 5), ROW('remo_barra'), BICEPS(), CALVES()] }),
   full_b: () => ({ n: 'Completo B', t: 'Tirón y hombros', slots: [HINGE(5, 3), OHP(4, 5), PULLUP(4, 6), GLUTE(), REAR()] }),
   full_c: () => ({ n: 'Completo C', t: 'Fuerza pesada', slots: [SQUAT(5, 3), BENCH(5, 3), ROW('remo_mancuerna'), TRICEPS(), HAMS()] }),
-  upper_a: () => ({ n: 'Torso A', t: 'Press banca pesado', slots: [BENCH(5, 5), ROW('remo_barra', 4, 6), OHP(3, 8), PULLUP(3, 8), BICEPS()] }),
+  upper_a: () => ({ n: 'Torso A', t: 'Press banca pesado', slots: [BENCH(5, 5), ROW('remo_barra', 4, 6), OHP(3, 8), PULLUP(3, 8), LATERAL(), BICEPS()] }),
   upper_b: () => ({ n: 'Torso B', t: 'Press militar pesado', slots: [OHP(5, 5), BENCH(4, 6, 'banca_inclinada'), PULLUP(4, 6), ROW('remo_mancuerna'), TRICEPS(3, 10, 'press_frances'), REAR()] }),
   lower_a: () => ({ n: 'Pierna A', t: 'Sentadilla pesada', slots: [SQUAT(5, 5), HAMS(3, 8), GLUTE(), CALVES()] }),
   lower_b: () => ({ n: 'Pierna B', t: 'Peso muerto pesado', slots: [HINGE(5, 3), SQUAT(3, 6, 'sentadilla_frontal'), GLUTE(3, 8), HAMS(3, 12, 'curl_femoral'), CALVES(4, 15, 'pant_sentado')] }),
-  push: () => ({ n: 'Empuje', t: 'Pecho, hombros y tríceps', slots: [BENCH(5, 5), OHP(4, 6), BENCH(3, 8, 'banca_inclinada'), TRICEPS(3, 12, 'ext_polea'), REAR(3, 15, 'reverse_fly')] }),
+  push: () => ({ n: 'Empuje', t: 'Pecho, hombros y tríceps', slots: [BENCH(5, 5), OHP(4, 6), BENCH(3, 8, 'banca_inclinada'), LATERAL(), TRICEPS(3, 12, 'ext_polea'), REAR(3, 15, 'reverse_fly')] }),
   pull: () => ({ n: 'Tirón', t: 'Espalda y bíceps', slots: [PULLUP(5, 5), ROW('remo_barra', 4, 6), ROW('remo_polea', 3, 12), REAR(), BICEPS(3, 12, 'curl_martillo')] }),
   legs: () => ({ n: 'Pierna', t: 'Sentadilla y bisagra', slots: [SQUAT(5, 5), HINGE(3, 6, 'pm_rumano'), SQUAT(3, 10, 'prensa'), GLUTE(), CALVES()] }),
 };
@@ -339,14 +419,4 @@ export const QUOTES = [
   'La fuerza se construye en silencio, serie por serie.',
   'No hay atajos en el peso muerto. Solo repeticiones.',
   'Tu cuerpo se adapta a lo que le pedís. Pedile un poco más.',
-];
-
-export const SONGS = [
-  ['Eye of the Tiger', 'Survivor'], ['Till I Collapse', 'Eminem'], ['Lose Yourself', 'Eminem'],
-  ['Thunderstruck', 'AC/DC'], ['Remember the Name', 'Fort Minor'], ["Can't Hold Us", 'Macklemore y Ryan Lewis'],
-  ['Seven Nation Army', 'The White Stripes'], ['Enter Sandman', 'Metallica'], ['Killing in the Name', 'Rage Against the Machine'],
-  ['Stronger', 'Kanye West'], ['Sabotage', 'Beastie Boys'], ["Welcome to the Jungle", "Guns N' Roses"],
-  ['Matador', 'Los Fabulosos Cadillacs'], ['De música ligera', 'Soda Stereo'], ['Power', 'Kanye West'],
-  ['Numb / Encore', 'JAY-Z y Linkin Park'], ['Duality', 'Slipknot'], ['Gasolina', 'Daddy Yankee'],
-  ['Bulls on Parade', 'Rage Against the Machine'], ["X Gon' Give It to Ya", 'DMX'], ['Back in Black', 'AC/DC'],
 ];

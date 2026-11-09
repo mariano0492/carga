@@ -152,7 +152,7 @@ textarea:focus{border-color:var(--pink);outline:none}
 .toast{position:absolute;left:50%;top:18px;transform:translate(-50%,-140%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13.5px;transition:transform .35s;z-index:9;max-width:90%;text-align:center}
 .toast.show{transform:translate(-50%,0)}
 .toast.pr{background:var(--green);color:#fff}
-/* frase, recuperación desplegable, canción, temporizador */
+/* frase, recuperación desplegable, temporizador */
 .quote{margin:0;border-left:3px solid var(--pink);padding:2px 0 2px 14px;border-radius:0}
 .quote blockquote{margin:0;font-size:21px;line-height:1.25;letter-spacing:-.02em;font-weight:400;text-wrap:balance}
 .quote figcaption{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
@@ -162,18 +162,6 @@ textarea:focus{border-color:var(--pink);outline:none}
 .recovhead[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .dots{display:flex;gap:6px;margin-top:12px}
 .dots i{width:12px;height:12px;border-radius:50%}
-.song{display:grid;grid-template-columns:52px 1fr;gap:4px 12px;align-items:center;background:var(--wine);color:var(--wine-ink);border-radius:18px;padding:12px}
-.song-art{width:52px;height:52px;border-radius:12px;background:var(--pink);color:var(--pink-ink);display:grid;place-items:center;grid-row:span 2}
-.song-art .ms{font-size:28px}
-.song-info{display:flex;flex-direction:column;gap:2px;min-width:0}
-.song-info .eyebrow{color:#E9A6C7}
-.song-t{font-weight:500;font-size:16px;color:#fff}
-.song-a{font-size:13px}
-.song-links{display:flex;gap:6px;flex-wrap:wrap}
-.song-links a,.song-links button{border:1px solid rgba(247,198,222,.5);border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--wine-ink);text-decoration:none}
-.song.compact{grid-template-columns:40px 1fr;padding:10px}
-.song.compact .song-art{width:40px;height:40px}
-.song.compact .song-art .ms{font-size:22px}
 .timerbox{border-radius:24px;padding:18px;background:var(--surface);display:flex;flex-direction:column;gap:14px;transition:background .3s,color .3s}
 .timerbox.on{background:var(--wine);color:var(--wine-ink)}
 .timerbox.on .chip{color:var(--wine-ink);border-color:rgba(247,198,222,.4)}
@@ -408,3 +396,71 @@ nav button{font-size:9.5px;min-width:0}
 .catlist .opt-chk{color:var(--muted)}
 .rdbanner>.ms{flex:none}
 .tag-readapt{background:var(--pink);color:var(--pink-ink)}
+.picker-sep{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--pink);padding:16px 10px 2px;border-top:1px solid var(--line);margin-top:8px}
+/* encabezado de Hoy y Entrenar con el cronómetro */
+.headbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.headbar-l{min-width:0;display:flex;flex-direction:column;gap:5px}
+.headbar-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.head-t{margin:0;font-size:24px;font-weight:500;letter-spacing:-.025em;line-height:1.1}
+.head-sub{font-size:14px;color:var(--muted);line-height:1.3;text-align:left}
+.head-sub:empty{display:none}
+.linkish{display:inline-flex;align-items:center;gap:2px;align-self:flex-start}
+.linkish .ms{font-size:18px;color:var(--pink)}
+.livepill{display:inline-flex;align-items:center;gap:7px;background:var(--pink);color:var(--pink-ink);border-radius:999px;padding:4px 12px 4px 10px;font-family:var(--mono);font-size:16px;font-weight:500;line-height:1.3;font-variant-numeric:tabular-nums}
+.livepill i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:livedot 1.6s ease-in-out infinite}
+.livepill.off{background:transparent;color:var(--dim);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.livepill.off i{animation:none}
+@keyframes livedot{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.livepill i{animation:none}}
+/* edición durante el entreno */
+.ex-meta-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.setctl{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:999px;padding:2px;flex:none}
+.setctl button{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--text)}
+.setctl button:disabled{opacity:.25;cursor:default}
+.setctl .ms{font-size:18px}
+.setctl b{font-weight:400;font-size:13px;min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
+.skipbtn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dim)}
+.skipbtn .ms{font-size:18px}
+.ex.skipped{flex-direction:row;justify-content:space-between;align-items:center;gap:12px;font-size:13.5px;color:var(--muted);padding-bottom:2px}
+.ex.skipped b{color:var(--text);font-weight:500}
+.ex.skipped .linkbtn{flex:none}
+.addex{display:flex;align-items:center;justify-content:center;gap:6px;border-style:dashed;color:var(--muted)}
+.rdbanner.pend{background:var(--surface-2);color:var(--text)}
+.rdbanner.pend>.ms{color:var(--pink)}
+.rdbanner .bannerbtn+.bannerbtn{margin-left:6px}
+.svplan .check{align-items:flex-start;font-size:14px;line-height:1.35;padding:4px 0}
+.svplan .check input{margin-top:0;flex:none}
+.ex-meta .ms{font-size:14px;width:auto;vertical-align:-2px;margin-right:2px}
+.cta>.ms{flex:none}
+/* Hoy: la fecha y el entreno en curso en una tarjeta */
+.headcard{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px 14px 16px 20px;align-items:center;transition:border-color .3s}
+.headcard.live{border-color:color-mix(in srgb,var(--pink) 40%,transparent)}
+.headcard .iconbtn{width:42px;height:42px;flex:none;border:0;background:var(--surface-2);color:var(--muted)}
+.headcard .iconbtn .ms{font-size:23px;font-weight:400}
+#wkHead{padding-right:20px}
+/* bienvenida */
+.welcome{position:absolute;inset:0;z-index:18;overflow-y:auto;color:#fff;transition:transform .35s ease,opacity .35s ease;
+  background:radial-gradient(70% 55% at 100% 0%,rgba(168,134,118,.55),transparent 70%),linear-gradient(135deg,#050203 0%,#36211f 26%,#6a3058 52%,#c24fb4 78%,#f39fd0 100%)}
+.welcome[data-tod="manana"]{background:radial-gradient(75% 55% at 100% 0%,rgba(255,206,178,.6),transparent 70%),linear-gradient(135deg,#2a1219 0%,#7a3a5e 34%,#c95aa6 66%,#e58fc4 100%)}
+.welcome[data-tod="noche"]{background:radial-gradient(80% 60% at 100% 100%,rgba(214,82,180,.45),transparent 70%),linear-gradient(135deg,#000 0%,#0e0508 42%,#3a1133 72%,#7d2a70 100%)}
+.welcome::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.2;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.welcome.out{transform:translateY(-100%)!important;opacity:0}
+.wc-in{position:relative;min-height:100%;display:flex;flex-direction:column;gap:18px;padding:calc(40px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px))}
+.wc-date{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.wc-hi{margin:0 0 10px;font-size:56px;font-weight:400;letter-spacing:-.045em;line-height:.98;text-wrap:balance}
+.wc-rec{display:flex;flex-direction:column;gap:4px}
+.wc-k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.wc-n{font-size:34px;font-weight:500;letter-spacing:-.03em;line-height:1.05}
+.wc-sub{font-size:15px;color:rgba(255,255,255,.85)}
+.wc-info{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wc-info li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px 12px}
+.wc-info .ms{font-size:20px;flex:none;color:#fff}
+.wc-btns{margin-top:auto;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wc-btns button{border-radius:16px;padding:15px 12px;font-size:15px;font-weight:500}
+.wc-go{background:#fff;color:#2a0718}
+.wc-go[hidden]+.wc-hoy{grid-column:1 / -1}
+.wc-hoy{border:1px solid rgba(255,255,255,.6);color:#fff;background:rgba(40,6,24,.22)}
+.wc-hint{margin:0;text-align:center;font-size:12px;color:rgba(255,255,255,.65);display:flex;justify-content:center;align-items:center;gap:2px}
+.wc-hint .ms{font-size:18px}
+@media (prefers-reduced-motion:reduce){.welcome{transition:none}}

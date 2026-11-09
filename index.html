@@ -22,7 +22,13 @@
 
     <!-- HOY -->
     <section class="screen" data-screen="hoy">
-      <div class="eyebrow"><span id="todayLbl"></span><button class="iconbtn" data-go="ajustes" aria-label="Ajustes"><span class="ms">settings</span></button></div>
+      <div class="headbar headcard" id="hoyHead">
+        <div class="headbar-l">
+          <div class="headbar-top"><h1 class="head-t" id="todayLbl"></h1><button class="livepill" id="hoyClock" data-go="entrenar" aria-label="Entrenamiento en curso: volver a Entrenar" hidden><i aria-hidden="true"></i><span>00:00</span></button></div>
+          <button class="head-sub linkish" id="hoyLive" data-go="entrenar" hidden></button>
+        </div>
+        <button class="iconbtn" data-go="ajustes" aria-label="Ajustes"><span class="ms">settings</span></button>
+      </div>
       <figure class="quote">
         <blockquote id="quoteTxt"></blockquote>
         <figcaption><span>Frase del día</span><button id="quoteNext">Otra frase</button></figcaption>
@@ -30,7 +36,7 @@
       <div>
         <button class="recovhead" id="recovToggle" aria-expanded="false" aria-controls="recovPanel">
           <span>
-            <span class="big" style="font-size:92px;display:block"><span id="readyN">0</span><span style="color:var(--dim)">/6</span></span>
+            <span class="big" style="font-size:92px;display:block"><span id="readyN">0</span><span style="color:var(--dim)" id="readyOf">/9</span></span>
             <span class="sub" style="display:block;margin-top:10px">músculos listos para entrenar</span>
             <span class="dots" id="recovDots" aria-hidden="true"></span>
             <span class="recov-hint" id="recovHint">Ver figura y detalle</span>
@@ -52,11 +58,6 @@
         <div id="wellness"></div>
         <p class="ready-foot">Sale de tu sueño, tu energía y tus molestias. Cambia el peso que sugiere Entrenar.</p>
       </div>
-      <div class="song" id="songCard">
-        <div class="song-art" aria-hidden="true"><span class="ms">music_note</span></div>
-        <div class="song-info"><span class="eyebrow" style="justify-content:flex-start">Canción del día</span><b class="song-t"></b><span class="song-a"></span></div>
-        <div class="song-links"><a class="song-sp" target="_blank" rel="noopener">Spotify</a><a class="song-yt" target="_blank" rel="noopener">YouTube</a><button class="song-next">Otra</button></div>
-      </div>
       <button class="cta" data-go="entrenar" id="todayCta"></button>
       <div class="stats">
         <div><b id="weekStat">0/3</b><span>entrenos esta semana</span></div>
@@ -75,23 +76,25 @@
 
     <!-- ENTRENAR -->
     <section class="screen" data-screen="entrenar" hidden>
-      <div class="eyebrow"><span id="wkTitle"></span><span id="wkClock">00:00</span></div>
+      <div class="headbar headcard" id="wkHead">
+        <div class="headbar-l">
+          <div class="headbar-top"><h1 class="head-t" id="wkTitle"></h1><span class="livepill off" id="wkClock" role="timer" aria-label="Tiempo de entrenamiento"><i aria-hidden="true"></i><span>00:00</span></span></div>
+          <div class="head-sub" id="wkSub"></div>
+        </div>
+      </div>
       <div class="planbar"><span id="planLbl"></span><button class="linkbtn planlink" data-go="plan"><span class="ms">edit_calendar</span>Mi plan</button></div>
       <div class="daychips" role="group" aria-label="Día de entrenamiento" id="dayPick"></div>
       <div>
         <div class="big" style="font-size:64px"><span id="setsDone">0</span><span style="color:var(--dim)">/<span id="setsTotal">0</span></span></div>
         <p class="sub" style="margin:8px 0 0">series completadas · <span id="volTxt">0</span> kg de volumen</p>
       </div>
+      <div class="rdbanner pend" id="pdBanner" role="status" hidden></div>
       <div class="rdbanner low" id="recBanner" role="status" hidden></div>
       <div class="rdbanner mid" id="raBanner" role="status" hidden></div>
       <div class="rdbanner" id="rdBanner" hidden></div>
       <div class="lastfb" id="lastFb" hidden></div>
-      <div class="song compact">
-        <div class="song-art" aria-hidden="true"><span class="ms">music_note</span></div>
-        <div class="song-info"><b class="song-t"></b><span class="song-a"></span></div>
-        <div class="song-links"><a class="song-sp" target="_blank" rel="noopener">Spotify</a><a class="song-yt" target="_blank" rel="noopener">YouTube</a></div>
-      </div>
       <div id="exList" style="display:flex;flex-direction:column;gap:22px"></div>
+      <button class="btn addex" id="addExBtn"><span class="ms">add</span>Agregar ejercicio</button>
       <button class="cta" id="finishBtn" style="justify-content:center">Terminar entrenamiento</button>
       <button class="btn" id="discardBtn">Descartar entrenamiento</button>
       <div style="height:60px" aria-hidden="true"></div>
@@ -265,6 +268,7 @@
 
       <div class="setgroup">
         <h2>Tus datos</h2>
+        <label class="field"><span>Tu nombre</span><input id="nameIn" type="text" autocomplete="given-name" placeholder="Para saludarte al abrir la app"></label>
         <label class="field"><span>Estándares de fuerza</span><select id="sexSel"><option value="M">Hombres</option><option value="F">Mujeres</option></select></label>
         <div class="grid2">
           <label class="field"><span>Calorías / día</span><input id="gKcal" type="number" inputmode="numeric"></label>
@@ -330,11 +334,24 @@
     </div>
   </div>
 
+  <!-- Bienvenida: una vez por día al abrir -->
+  <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wcHi" hidden>
+    <div class="wc-in">
+      <p class="wc-date" id="wcDate"></p>
+      <h1 class="wc-hi" id="wcHi">Hola</h1>
+      <div class="wc-rec" id="wcRec"></div>
+      <ul class="wc-info" id="wcInfo"></ul>
+      <div class="wc-btns"><button class="wc-go" id="wcGo">Entrenar</button><button class="wc-hoy" id="wcHoy">Ir a Hoy</button></div>
+      <p class="wc-hint" aria-hidden="true"><span class="ms">keyboard_arrow_up</span>Deslizá hacia arriba para cerrar</p>
+    </div>
+  </div>
+
   <!-- Configuración inicial -->
   <div class="onboard" id="onboard" hidden>
     <div class="onboard-in">
       <div class="big" style="font-size:64px">Carga</div>
       <p class="sub" style="margin:0">Tu bitácora de entrenamiento. Configurá lo básico; después podés cambiarlo en Ajustes y en Mi plan.</p>
+      <label class="field"><span>Tu nombre</span><input id="obName" type="text" autocomplete="given-name" placeholder="Para saludarte al abrir la app"></label>
       <label class="field"><span>Tu peso corporal (kg)</span><input id="obBw" type="number" inputmode="decimal" step="0.1" placeholder="82,4"></label>
       <div>
         <h2>¿Cuántos días por semana entrenás?</h2>

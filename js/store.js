@@ -27,6 +27,10 @@ function blank() {
     savedRecipes: [],
     lastFeedback: null,
     welcomeDay: null,       // último día en que se mostró la bienvenida
+    weekSeen: null,         // lunes de la semana cuyo resumen ya se avisó en la bienvenida
+    deload: null,           // semana de descarga actual o la última: { from, until, why }
+    deloads: [],            // historial de descargas: { from, until }
+    deloadSnooze: null,     // descarga pospuesta: { until, sig: claves de las señales de fatiga de ese momento }
   };
 }
 

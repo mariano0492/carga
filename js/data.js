@@ -343,8 +343,10 @@ export const SPLITS = {
   ],
 };
 
-/* ---------- Niveles de fuerza: mínimo de 1RM / peso corporal ---------- */
-export const LEVELS = ['Principiante', 'Novato', 'Intermedio', 'Avanzado', 'Élite'];
+/* ---------- Rangos de fuerza: 1RM / peso corporal ----------
+   Debajo del primer umbral es Inicio; cada umbral abre el rango siguiente y el último, Élite.
+   Cada rango salvo Élite se divide en tercios: I, II y III. */
+export const LEVELS = ['Inicio', 'Base', 'Intermedio', 'Avanzado', 'Experto', 'Élite'];
 export const STANDARDS = {
   M: { sentadilla: [.75, 1.25, 1.5, 2.25, 2.75], banca: [.5, .75, 1.25, 1.75, 2], peso_muerto: [1, 1.5, 2, 2.5, 3], press_militar: [.4, .55, .8, 1.05, 1.35] },
   F: { sentadilla: [.5, .75, 1.25, 1.5, 2], banca: [.25, .5, .75, 1, 1.5], peso_muerto: [.5, 1, 1.25, 1.75, 2.5], press_militar: [.2, .35, .5, .75, 1] },

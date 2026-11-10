@@ -27,6 +27,7 @@
         <span class="hc-txt"><b class="hc-n" id="hoyN"></b><span class="hc-sub" id="hoySub"></span></span>
         <span class="hc-clock" id="hoyClock" role="timer" aria-label="Tiempo de entrenamiento"><span class="hc-k"><i aria-hidden="true"></i>Tiempo</span><span class="hc-t">00:00</span></span>
       </button>
+      <div class="rdbanner dlb" id="dlHoy" role="status" hidden></div>
       <figure class="quote">
         <blockquote id="quoteTxt"></blockquote>
         <figcaption><span>Frase del día</span><button id="quoteNext">Otra frase</button></figcaption>
@@ -85,6 +86,7 @@
         <p class="sub" style="margin:8px 0 0">series completadas · <span id="volTxt">0</span> kg de volumen</p>
       </div>
       <div class="rdbanner pend" id="pdBanner" role="status" hidden></div>
+      <div class="rdbanner dlb" id="dlWk" role="status" hidden></div>
       <div class="rdbanner low" id="recBanner" role="status" hidden></div>
       <div class="rdbanner mid" id="raBanner" role="status" hidden></div>
       <div class="rdbanner" id="rdBanner" hidden></div>
@@ -140,53 +142,72 @@
         <h2>Últimas carreras</h2>
         <div id="runHistory"></div>
       </div>
+      <div id="runRecWrap" hidden>
+        <h2>Récords</h2>
+        <div id="runRecs"></div>
+      </div>
       <p class="sub" style="font-size:12px">Podés bloquear el celular: el tiempo, los intervalos y los avisos siguen, y se ven en la pantalla de bloqueo. Para que el GPS mida sin cortes, lo más seguro es dejar la pantalla encendida (la app evita que se apague sola). Si el GPS se corta, al volver completa el tramo en línea recta.</p>
     </section>
 
     <!-- PROGRESO -->
     <section class="screen" data-screen="progreso" hidden>
       <div class="eyebrow"><span>Historial</span><span>Progreso</span></div>
-      <div class="hist">
-        <div class="seg" role="group" aria-label="Ver historial por">
-          <button id="hMes" aria-pressed="true">Mes</button>
-          <button id="hAnio" aria-pressed="false">Año</button>
-        </div>
-        <div class="histnav">
-          <button class="iconbtn" id="hPrev" aria-label="Anterior"><span class="ms">chevron_left</span></button>
-          <b id="hLbl" aria-live="polite"></b>
-          <button class="iconbtn" id="hNext" aria-label="Siguiente"><span class="ms">chevron_right</span></button>
-        </div>
-        <div class="hist" id="histBox"></div>
+      <div class="seg pgtabs" role="group" aria-label="Sección de Progreso" id="pgTabs">
+        <button data-pg="res" aria-pressed="true">Resumen</button>
+        <button data-pg="ej" aria-pressed="false">Ejercicios</button>
+        <button data-pg="mu" aria-pressed="false">Músculos</button>
       </div>
-      <div>
-        <h2>Nivel de fuerza</h2>
-        <div class="lvl-head">
-          <div><span class="big" style="font-size:48px;display:block" id="lvlBig">–</span><span class="sub" id="lvlSub"></span></div>
-          <div class="seg" role="group" aria-label="Estándares" style="flex:none">
-            <button id="stdM" aria-pressed="true">Hombres</button>
-            <button id="stdF" aria-pressed="false">Mujeres</button>
+
+      <div class="pgpane" id="pgRes">
+        <div>
+          <h2>Rango de fuerza</h2>
+          <div id="rkBox"></div>
+        </div>
+        <div class="wkcard" id="wkCard">
+          <div class="histnav">
+            <button class="iconbtn" id="wPrev" aria-label="Semana anterior"><span class="ms">chevron_left</span></button>
+            <b id="wLbl" aria-live="polite"></b>
+            <button class="iconbtn" id="wNext" aria-label="Semana siguiente"><span class="ms">chevron_right</span></button>
           </div>
+          <div id="wkBox"></div>
         </div>
-        <div id="lvlList"></div>
-        <p class="sub" style="font-size:12px;margin:10px 0 0">Compara tu 1RM estimado con tu peso corporal. Estándares orientativos para personas que entrenan.</p>
+        <div>
+          <h2>Racha</h2>
+          <div id="stkBox"></div>
+        </div>
+        <div>
+          <h2>Peso corporal</h2>
+          <div id="bwBox"></div>
+        </div>
+        <div class="hist">
+          <h2 style="margin-bottom:-12px">Historial</h2>
+          <div class="seg" role="group" aria-label="Ver historial por">
+            <button id="hMes" aria-pressed="true">Mes</button>
+            <button id="hAnio" aria-pressed="false">Año</button>
+          </div>
+          <div class="histnav">
+            <button class="iconbtn" id="hPrev" aria-label="Anterior"><span class="ms">chevron_left</span></button>
+            <b id="hLbl" aria-live="polite"></b>
+            <button class="iconbtn" id="hNext" aria-label="Siguiente"><span class="ms">chevron_right</span></button>
+          </div>
+          <div class="hist" id="histBox"></div>
+        </div>
       </div>
-      <div>
-        <h2>1RM estimado</h2>
-        <div class="chips" id="liftChips" style="margin:8px 0 14px"></div>
-        <div id="liftBox"></div>
+
+      <div class="pgpane" id="pgEj" hidden>
+        <div class="chips" id="ejChips" role="group" aria-label="Filtrar por músculo"></div>
+        <div id="ejList"></div>
       </div>
-      <div>
-        <h2>Peso corporal</h2>
-        <div id="bwBox"></div>
+
+      <div class="pgpane" id="pgMu" hidden>
+        <div>
+          <h2>Series esta semana</h2>
+          <div id="muList"></div>
+          <p class="sub note">Cada serie cuenta en todos los músculos que trabaja el ejercicio, contra la meta semanal de tu plan. Tocá un músculo para ver su detalle.</p>
+        </div>
       </div>
-      <div>
-        <h2>Series por músculo · esta semana</h2>
-        <div id="volList" style="margin-top:6px"></div>
-      </div>
-      <div>
-        <h2>Récords personales</h2>
-        <div id="prList"></div>
-      </div>
+
+      <div class="pgpane" id="pgDet" hidden></div>
     </section>
 
     <!-- NUTRICIÓN -->
@@ -337,6 +358,7 @@
       <h1 class="wc-hi" id="wcHi">Hola</h1>
       <div class="wc-rec" id="wcRec"></div>
       <ul class="wc-info" id="wcInfo"></ul>
+      <button class="wc-week" id="wcWeek" hidden><span class="ms" aria-hidden="true">insights</span>Ver mi semana pasada</button>
       <div class="wc-btns"><button class="wc-go" id="wcGo">Entrenar</button><button class="wc-hoy" id="wcHoy">Ir a Hoy</button></div>
       <p class="wc-hint" aria-hidden="true"><span class="ms">keyboard_arrow_up</span>Deslizá hacia arriba para cerrar</p>
     </div>
